@@ -14,6 +14,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 {
     public const int ApiHostPort = 18100;
     public const int WebHostPort = 18200;
+    public const int WebPublicHostPort = 18300;
 
     // 127.0.0.1 rather than "localhost" - on this Windows/Docker Desktop setup, the .NET
     // HttpClient used for the readiness check below and the Chromium browser Playwright
@@ -21,9 +22,12 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // reliably reaching the published container ports.
     public string ApiBaseAddress => $"http://127.0.0.1:{ApiHostPort}";
     public string WebBaseAddress => $"http://127.0.0.1:{WebHostPort}";
+    public string WebPublicBaseAddress => $"http://127.0.0.1:{WebPublicHostPort}";
     public IBrowser Browser { get; private set; } = null!;
 
     private const string ServiceBusSqlPassword = "BikeBuilder!Bus2026";
+    private const string ServiceBusConnectionString =
+        "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
     private INetwork _network = null!;
     private MsSqlContainer _sql = null!;
@@ -32,8 +36,10 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     private IContainer _serviceBus = null!;
     private IFutureDockerImage _apiImage = null!;
     private IFutureDockerImage _webImage = null!;
+    private IFutureDockerImage _webPublicImage = null!;
     private IContainer _api = null!;
     private IContainer _web = null!;
+    private IContainer _webPublic = null!;
     private IPlaywright _playwright = null!;
 
     public async Task InitializeAsync()
@@ -113,7 +119,6 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithDockerfile("Dockerfile")
             .WithName("bikebuilder-api:test")
             .Build();
-        await _apiImage.CreateAsync();
 
         _webImage = new ImageFromDockerfileBuilder()
             .WithContextDirectory(solutionDir)
@@ -122,7 +127,15 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithBuildArgument("API_BASE_ADDRESS", ApiBaseAddress)
             .WithName("bikebuilder-web:test")
             .Build();
-        await _webImage.CreateAsync();
+
+        _webPublicImage = new ImageFromDockerfileBuilder()
+            .WithContextDirectory(solutionDir)
+            .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.Web.Public")
+            .WithDockerfile("Dockerfile")
+            .WithName("bikebuilder-web-public:test")
+            .Build();
+
+        await Task.WhenAll(_apiImage.CreateAsync(), _webImage.CreateAsync(), _webPublicImage.CreateAsync());
 
 #pragma warning disable CS0618
         _api = new ContainerBuilder()
@@ -134,8 +147,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
                 "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True")
             .WithEnvironment("ConnectionStrings__BlobStorage",
                 "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;")
-            .WithEnvironment("ConnectionStrings__ServiceBus",
-                "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
+            .WithEnvironment("ConnectionStrings__ServiceBus", ServiceBusConnectionString)
             .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
             .Build();
@@ -146,8 +158,20 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithPortBinding(WebHostPort, 80)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(80).ForPath("/")))
             .Build();
+
+        // Unlike _web (a WASM app the browser calls directly), _webPublic's own
+        // ServiceBusListenerBackgroundService needs server-side reachability to the Service
+        // Bus emulator, so it must join _network.
+        _webPublic = new ContainerBuilder()
+            .WithImage(_webPublicImage)
+            .WithNetwork(_network)
+            .WithNetworkAliases("web-public")
+            .WithPortBinding(WebPublicHostPort, 8080)
+            .WithEnvironment("ConnectionStrings__ServiceBus", ServiceBusConnectionString)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
+            .Build();
 #pragma warning restore CS0618
-        await _web.StartAsync();
+        await Task.WhenAll(_web.StartAsync(), _webPublic.StartAsync());
 
         // Testcontainers' own readiness probes above already confirmed both containers respond
         // on their published ports, but on Windows/Docker Desktop the host-side port-forwarding
@@ -156,6 +180,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         // before handing control to Playwright, so the app's first real page load doesn't race it.
         await WaitUntilReachableAsync(ApiBaseAddress);
         await WaitUntilReachableAsync(WebBaseAddress);
+        await WaitUntilReachableAsync(WebPublicBaseAddress);
 
         _playwright = await Playwright.CreateAsync();
         // Set HEADED=1 to watch the browser while the test runs (e.g. `$env:HEADED=1` in
@@ -223,6 +248,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             await _web.DisposeAsync();
         }
 
+        if (_webPublic is not null)
+        {
+            await _webPublic.DisposeAsync();
+        }
+
         if (_api is not null)
         {
             await _api.DisposeAsync();
@@ -256,6 +286,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         if (_webImage is not null)
         {
             await _webImage.DisposeAsync();
+        }
+
+        if (_webPublicImage is not null)
+        {
+            await _webPublicImage.DisposeAsync();
         }
 
         if (_network is not null)
