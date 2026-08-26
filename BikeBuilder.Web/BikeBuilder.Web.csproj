@@ -5,6 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- The browser fetch response-streaming mode .NET's WASM HttpClient uses by default is
+         incompatible with gRPC-Web calls in some network setups (surfaces as a "Failed to fetch"
+         TypeError / ERR_CONNECTION_REFUSED on otherwise-reachable endpoints) - buffer responses
+         instead. Response payloads in this app are small, so there's no real downside. -->
+    <WasmEnableStreamingResponse>false</WasmEnableStreamingResponse>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="BikeBuilder.API/BikeBuilder.API.csproj" />
+  <Project Path="BikeBuilder.Test.Integration/BikeBuilder.Test.Integration.csproj" />
   <Project Path="BikeBuilder.Web/BikeBuilder.Web.csproj" />
 </Solution>
