@@ -1,0 +1,34 @@
+@page "/"
+@implements IAsyncDisposable
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Home</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">BikeBuilder Live Activity</MudText>
+<MudText Typo="Typo.body1">You'll see a toast here whenever a component or bike build is created.</MudText>
+
+@code {
+    private HubConnection? _hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/hubs/notifications"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<string>("ReceiveNotification",
+            message => InvokeAsync(() => Snackbar.Add(message, Severity.Info)));
+
+        await _hubConnection.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}

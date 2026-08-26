@@ -1,12 +1,14 @@
 using System.Globalization;
 using BikeBuilder.API.Data;
 using BikeBuilder.API.Protos;
+using BikeBuilder.Contracts.Events;
+using BikeBuilder.Contracts.Messaging;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 
 namespace BikeBuilder.API.Services;
 
-public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorageService storage) : ComponentService.ComponentServiceBase
+public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorageService storage, IEventPublisher eventPublisher) : ComponentService.ComponentServiceBase
 {
     public override async Task<ListComponentsResponse> ListComponents(ListComponentsRequest request, ServerCallContext context)
     {
@@ -36,6 +38,16 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
 
         db.Components.Add(component);
         await db.SaveChangesAsync(context.CancellationToken);
+
+        await eventPublisher.PublishAsync(ServiceBusMessageTypes.ComponentCreated,
+            new ComponentCreatedEvent
+            {
+                Id = component.Id,
+                Name = component.Name,
+                Cost = component.Cost,
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            context.CancellationToken);
 
         return ToMessage(component);
     }

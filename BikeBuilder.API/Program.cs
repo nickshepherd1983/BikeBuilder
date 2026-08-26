@@ -1,7 +1,9 @@
+using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
 using BikeBuilder.API.Data;
 using BikeBuilder.API.Endpoints;
 using BikeBuilder.API.Services;
+using BikeBuilder.Contracts.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,10 @@ builder.Services.AddDbContext<BikeBuilderDbContext>(options =>
 builder.Services.AddSingleton(_ => new BlobServiceClient(builder.Configuration.GetConnectionString("BlobStorage")));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<BlobServiceClient>().GetBlobContainerClient("component-images"));
 builder.Services.AddSingleton<ComponentImageStorageService>();
+
+builder.Services.AddSingleton(_ => new ServiceBusClient(builder.Configuration.GetConnectionString("ServiceBus")));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<ServiceBusClient>().CreateSender(ServiceBusQueueNames.Notifications));
+builder.Services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
 
 var webAppOrigins = builder.Configuration.GetSection("WebAppOrigins").Get<string[]>()
     ?? ["https://localhost:7200", "http://localhost:7201"];

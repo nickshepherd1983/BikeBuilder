@@ -1,12 +1,14 @@
 using BikeBuilder.API.Data;
 using BikeBuilder.API.Protos;
+using BikeBuilder.Contracts.Events;
+using BikeBuilder.Contracts.Messaging;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 
 namespace BikeBuilder.API.Services;
 
-public class BikeBuildGrpcService(BikeBuilderDbContext db) : BikeBuildService.BikeBuildServiceBase
+public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher eventPublisher) : BikeBuildService.BikeBuildServiceBase
 {
     public override async Task<ListBikeBuildsResponse> ListBikeBuilds(ListBikeBuildsRequest request, ServerCallContext context)
     {
@@ -34,6 +36,15 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db) : BikeBuildService.Bi
 
         db.BikeBuilds.Add(bikeBuild);
         await db.SaveChangesAsync(context.CancellationToken);
+
+        await eventPublisher.PublishAsync(ServiceBusMessageTypes.BikeBuildCreated,
+            new BikeBuildCreatedEvent
+            {
+                Id = bikeBuild.Id,
+                Name = bikeBuild.Name,
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            context.CancellationToken);
 
         return ToMessage(bikeBuild, includeComponents: false);
     }
