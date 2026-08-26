@@ -23,9 +23,13 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     public string WebBaseAddress => $"http://127.0.0.1:{WebHostPort}";
     public IBrowser Browser { get; private set; } = null!;
 
+    private const string ServiceBusSqlPassword = "BikeBuilder!Bus2026";
+
     private INetwork _network = null!;
     private MsSqlContainer _sql = null!;
     private AzuriteContainer _azurite = null!;
+    private IContainer _serviceBusSql = null!;
+    private IContainer _serviceBus = null!;
     private IFutureDockerImage _apiImage = null!;
     private IFutureDockerImage _webImage = null!;
     private IContainer _api = null!;
@@ -69,7 +73,31 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithEnvironment("AZURITE_SKIP_API_VERSION_CHECK", "true")
             .Build();
 
-        await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync());
+        // Mirrors docker-compose.yml's servicebus-sql/servicebus-emulator services: the Service
+        // Bus emulator requires its own paired Azure SQL Edge instance (separate from the app's
+        // own "sql" container/password) and waits internally for it to become reachable, so no
+        // explicit wait-for-SQL-readiness step is needed here beyond just starting it.
+        _serviceBusSql = new ContainerBuilder()
+            .WithImage("mcr.microsoft.com/azure-sql-edge:latest")
+            .WithNetwork(_network)
+            .WithNetworkAliases("servicebus-sql")
+            .WithEnvironment("ACCEPT_EULA", "Y")
+            .WithEnvironment("MSSQL_SA_PASSWORD", ServiceBusSqlPassword)
+            .Build();
+
+        _serviceBus = new ContainerBuilder()
+            .WithImage("mcr.microsoft.com/azure-messaging/servicebus-emulator:latest")
+            .WithNetwork(_network)
+            .WithNetworkAliases("servicebus-emulator")
+            .WithEnvironment("ACCEPT_EULA", "Y")
+            .WithEnvironment("SQL_SERVER", "servicebus-sql")
+            .WithEnvironment("MSSQL_SA_PASSWORD", ServiceBusSqlPassword)
+            .WithBindMount(Path.Combine(solutionDir, "servicebus-emulator", "Config.json"), "/ServiceBus_Emulator/ConfigFiles/Config.json")
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("Emulator Service is Successfully Up!"))
+            .Build();
+
+        await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync());
+        await _serviceBus.StartAsync();
 
         var options = new DbContextOptionsBuilder<BikeBuilderDbContext>()
             .UseSqlServer(_sql.GetConnectionString())
@@ -106,6 +134,8 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
                 "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True")
             .WithEnvironment("ConnectionStrings__BlobStorage",
                 "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;")
+            .WithEnvironment("ConnectionStrings__ServiceBus",
+                "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
             .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
             .Build();
@@ -201,6 +231,16 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         if (_azurite is not null)
         {
             await _azurite.DisposeAsync();
+        }
+
+        if (_serviceBus is not null)
+        {
+            await _serviceBus.DisposeAsync();
+        }
+
+        if (_serviceBusSql is not null)
+        {
+            await _serviceBusSql.DisposeAsync();
         }
 
         if (_sql is not null)
