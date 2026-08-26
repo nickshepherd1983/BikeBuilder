@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
 namespace BikeBuilder.Test.Integration.PageObjects;

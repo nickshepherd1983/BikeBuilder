@@ -1,6 +1,3 @@
-using BikeBuilder.API.Data.Entities;
-using Microsoft.EntityFrameworkCore;
-
 namespace BikeBuilder.API.Data;
 
 public class BikeBuilderDbContext(DbContextOptions<BikeBuilderDbContext> options) : DbContext(options)

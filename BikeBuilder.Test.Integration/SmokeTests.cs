@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using BikeBuilder.Test.Integration.PageObjects;
 
 namespace BikeBuilder.Test.Integration;

@@ -1,8 +1,5 @@
-using Azure.Messaging.ServiceBus;
 using BikeBuilder.Contracts.Events;
 using BikeBuilder.Contracts.Messaging;
-using BikeBuilder.Web.Public.Hubs;
-using Microsoft.AspNetCore.SignalR;
 
 namespace BikeBuilder.Web.Public.Services;
 

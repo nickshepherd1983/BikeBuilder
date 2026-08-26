@@ -4,7 +4,6 @@ using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Images;
 using DotNet.Testcontainers.Networks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Playwright;
 using Testcontainers.Azurite;
 using Testcontainers.MsSql;
 

@@ -1,7 +1,3 @@
-using BikeBuilder.API.Data.Entities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace BikeBuilder.API.Data.Configurations;
 
 public class ComponentImageConfiguration : IEntityTypeConfiguration<ComponentImage>

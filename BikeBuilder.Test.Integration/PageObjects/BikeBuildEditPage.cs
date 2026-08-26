@@ -1,5 +1,3 @@
-using Microsoft.Playwright;
-
 namespace BikeBuilder.Test.Integration.PageObjects;
 
 public class BikeBuildEditPage(IPage page)

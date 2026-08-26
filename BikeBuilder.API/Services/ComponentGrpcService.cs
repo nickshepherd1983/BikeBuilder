@@ -1,10 +1,7 @@
 using System.Globalization;
-using BikeBuilder.API.Data;
 using BikeBuilder.API.Protos;
 using BikeBuilder.Contracts.Events;
-using BikeBuilder.Contracts.Messaging;
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 
 namespace BikeBuilder.API.Services;
 

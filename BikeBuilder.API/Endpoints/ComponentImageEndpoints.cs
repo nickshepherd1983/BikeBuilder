@@ -1,7 +1,4 @@
-using BikeBuilder.API.Data;
-using BikeBuilder.API.Data.Entities;
 using BikeBuilder.API.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace BikeBuilder.API.Endpoints;
 

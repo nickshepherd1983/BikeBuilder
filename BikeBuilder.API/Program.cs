@@ -1,10 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
-using BikeBuilder.API.Data;
 using BikeBuilder.API.Endpoints;
 using BikeBuilder.API.Services;
-using BikeBuilder.Contracts.Messaging;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
