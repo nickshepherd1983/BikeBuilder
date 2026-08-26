@@ -128,8 +128,13 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         await WaitUntilReachableAsync(WebBaseAddress);
 
         _playwright = await Playwright.CreateAsync();
+        // Set HEADED=1 to watch the browser while the test runs (e.g. `$env:HEADED=1` in
+        // PowerShell before `dotnet test`); defaults to headless otherwise.
+        var headed = Environment.GetEnvironmentVariable("HEADED") == "1";
         Browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
+            Headless = !headed,
+            SlowMo = headed ? 250 : 0,
             // Chrome's speculative background-networking features (preconnect, DNS/network
             // prediction, connection warm-up heuristics) have been observed interacting badly
             // with this environment's Docker-forwarded loopback ports, surfacing as intermittent
