@@ -1,0 +1,230 @@
+@page "/components"
+@inject ComponentService.ComponentServiceClient ComponentClient
+@inject ComponentImageClient ImageClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Components</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4">Components</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddComponent">
+        Add Component
+    </MudButton>
+</MudStack>
+
+<MudTable Items="@components" Loading="@(components is null)" Hover="true" Bordered="true">
+    <HeaderContent>
+        <MudTh Style="width: 1%;"></MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Cost</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh Style="width: 1%;"></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Image">
+            @if (context.HasImage)
+            {
+                <img src="@ImageClient.GetImageUrl(context.Id, context.ImageVersion)"
+                     alt="@context.Name"
+                     style="width:48px;height:48px;object-fit:cover;border-radius:4px;" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Default" />
+            }
+        </MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Cost">@FormatCost(context.Cost)</MudTd>
+        <MudTd DataLabel="Description">@context.Description</MudTd>
+        <MudTd DataLabel="">
+            <MudStack Row="true" Spacing="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => EditComponent(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="() => DeleteComponent(context)" />
+                <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.gif" MaxFileSize="5_000_000"
+                               FilesChanged="(file) => UploadImage(context, file)">
+                    <CustomContent Context="uploadCtx">
+                        <MudIconButton Icon="@Icons.Material.Filled.Upload" Size="Size.Small" Disabled="@_isUploading"
+                                       OnClick="@(() => uploadCtx.OpenFilePickerAsync())" />
+                    </CustomContent>
+                </MudFileUpload>
+                @if (context.HasImage)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.HideImage" Size="Size.Small" Color="Color.Error" OnClick="() => DeleteImage(context)" />
+                }
+            </MudStack>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No components yet. Add one to get started.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".gif"];
+
+    private List<ComponentMessage>? components;
+    private bool _isUploading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadComponents();
+    }
+
+    private async Task LoadComponents()
+    {
+        var response = await ComponentClient.ListComponentsAsync(new ListComponentsRequest());
+        components = response.Components.ToList();
+    }
+
+    private static string FormatCost(string cost) =>
+        decimal.TryParse(cost, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value.ToString("C2")
+            : cost;
+
+    private async Task AddComponent()
+    {
+        var parameters = new DialogParameters<ComponentDialog>
+        {
+            { x => x.Title, "Add Component" }
+        };
+
+        var dialog = await DialogService.ShowAsync<ComponentDialog>("Add Component", parameters);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        var (name, cost, description) = ((string, string, string))result.Data!;
+
+        try
+        {
+            await ComponentClient.CreateComponentAsync(new CreateComponentRequest { Name = name, Cost = cost, Description = description });
+            Snackbar.Add("Component added.", Severity.Success);
+            await LoadComponents();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+
+    private async Task EditComponent(ComponentMessage component)
+    {
+        var parameters = new DialogParameters<ComponentDialog>
+        {
+            { x => x.Title, "Edit Component" },
+            { x => x.Name, component.Name },
+            { x => x.Cost, component.Cost },
+            { x => x.Description, component.Description }
+        };
+
+        var dialog = await DialogService.ShowAsync<ComponentDialog>("Edit Component", parameters);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        var (name, cost, description) = ((string, string, string))result.Data!;
+
+        try
+        {
+            await ComponentClient.UpdateComponentAsync(new UpdateComponentRequest
+            {
+                Id = component.Id,
+                Name = name,
+                Cost = cost,
+                Description = description
+            });
+            Snackbar.Add("Component updated.", Severity.Success);
+            await LoadComponents();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+
+    private async Task DeleteComponent(ComponentMessage component)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Component",
+            $"Delete \"{component.Name}\"? This cannot be undone.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await ComponentClient.DeleteComponentAsync(new DeleteComponentRequest { Id = component.Id });
+            Snackbar.Add("Component deleted.", Severity.Success);
+            await LoadComponents();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+
+    private async Task UploadImage(ComponentMessage component, IBrowserFile file)
+    {
+        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (!AllowedImageExtensions.Contains(extension))
+        {
+            Snackbar.Add("Only .jpg, .png, and .gif files are supported.", Severity.Error);
+            return;
+        }
+
+        _isUploading = true;
+        try
+        {
+            var response = await ImageClient.UploadAsync(component.Id, file, maxFileSize: 5_000_000);
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to upload image.", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Image uploaded.", Severity.Success);
+            await LoadComponents();
+        }
+        catch (IOException)
+        {
+            Snackbar.Add("File is too large (max 5 MB).", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private async Task DeleteImage(ComponentMessage component)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Delete Image",
+            $"Delete the image for \"{component.Name}\"?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var response = await ImageClient.DeleteAsync(component.Id);
+        if (!response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Failed to delete image.", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add("Image deleted.", Severity.Success);
+        await LoadComponents();
+    }
+}

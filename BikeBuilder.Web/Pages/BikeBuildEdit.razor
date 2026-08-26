@@ -1,0 +1,224 @@
+@page "/bikebuilds/{Id:int}/edit"
+@inject BikeBuildService.BikeBuildServiceClient BikeBuildClient
+@inject ComponentService.ComponentServiceClient ComponentClient
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Bike Build</PageTitle>
+
+@if (bikeBuild is null || allComponents is null)
+{
+    <MudProgressCircular Indeterminate="true" Class="mt-4" />
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h4">Edit Bike Build</MudText>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBackToList">Back to list</MudButton>
+    </MudStack>
+
+    <MudPaper Class="pa-4 mb-6" Elevation="1">
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="name" Label="Name" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="date" Label="Date" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="description" Label="Description" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBikeBuild" Class="mt-3">Save</MudButton>
+        </MudForm>
+    </MudPaper>
+
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h5">Components</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddBikeBuildComponent">
+            Add Component
+        </MudButton>
+    </MudStack>
+
+    <MudTable Items="@bikeBuild.Components" Hover="true" Bordered="true">
+        <HeaderContent>
+            <MudTh>Component</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh Style="width: 1%;"></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Component">@context.ComponentName</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+            <MudTd DataLabel="Date">@context.Date.ToDateTimeOffset().ToString("d")</MudTd>
+            <MudTd DataLabel="">
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => EditBikeBuildComponent(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="() => RemoveBikeBuildComponent(context)" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No components added yet.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private MudForm _form = null!;
+    private BikeBuildMessage? bikeBuild;
+    private List<ComponentMessage>? allComponents;
+
+    private string name = string.Empty;
+    private DateTime? date = DateTime.Today;
+    private string description = string.Empty;
+
+    private void GoBackToList() => Navigation.NavigateTo("/bikebuilds");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var componentsResponse = await ComponentClient.ListComponentsAsync(new ListComponentsRequest());
+        allComponents = componentsResponse.Components.ToList();
+
+        await LoadBikeBuild();
+    }
+
+    private async Task LoadBikeBuild()
+    {
+        bikeBuild = await BikeBuildClient.GetBikeBuildAsync(new GetBikeBuildRequest { Id = Id });
+        name = bikeBuild.Name;
+        date = bikeBuild.Date.ToDateTimeOffset().Date;
+        description = bikeBuild.Description;
+    }
+
+    private async Task SaveBikeBuild()
+    {
+        if (date is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await BikeBuildClient.UpdateBikeBuildAsync(new UpdateBikeBuildRequest
+            {
+                Id = Id,
+                Name = name,
+                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(date.Value, DateTimeKind.Utc))),
+                Description = description
+            });
+
+            Snackbar.Add("Bike build saved.", Severity.Success);
+            await LoadBikeBuild();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+
+    private async Task AddBikeBuildComponent()
+    {
+        var parameters = new DialogParameters<BikeBuildComponentDialog>
+        {
+            { x => x.Title, "Add Component" },
+            { x => x.AllComponents, allComponents! }
+        };
+
+        var dialog = await DialogService.ShowAsync<BikeBuildComponentDialog>("Add Component", parameters);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        var (componentId, quantity, componentDate) = ((int, int, DateTime))result.Data!;
+
+        try
+        {
+            await BikeBuildClient.AddBikeBuildComponentAsync(new AddBikeBuildComponentRequest
+            {
+                BikeBuildId = Id,
+                ComponentId = componentId,
+                Quantity = quantity,
+                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(componentDate, DateTimeKind.Utc)))
+            });
+
+            Snackbar.Add("Component added.", Severity.Success);
+            await LoadBikeBuild();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+
+    private async Task EditBikeBuildComponent(BikeBuildComponentMessage bbc)
+    {
+        var parameters = new DialogParameters<BikeBuildComponentDialog>
+        {
+            { x => x.Title, "Edit Component" },
+            { x => x.AllComponents, allComponents! },
+            { x => x.ComponentId, bbc.ComponentId },
+            { x => x.Quantity, bbc.Quantity },
+            { x => x.Date, bbc.Date.ToDateTimeOffset().Date }
+        };
+
+        var dialog = await DialogService.ShowAsync<BikeBuildComponentDialog>("Edit Component", parameters);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        var (componentId, quantity, componentDate) = ((int, int, DateTime))result.Data!;
+
+        try
+        {
+            await BikeBuildClient.UpdateBikeBuildComponentAsync(new UpdateBikeBuildComponentRequest
+            {
+                Id = bbc.Id,
+                ComponentId = componentId,
+                Quantity = quantity,
+                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(componentDate, DateTimeKind.Utc)))
+            });
+
+            Snackbar.Add("Component updated.", Severity.Success);
+            await LoadBikeBuild();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+
+    private async Task RemoveBikeBuildComponent(BikeBuildComponentMessage bbc)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove Component",
+            $"Remove \"{bbc.ComponentName}\" from this bike build?",
+            yesText: "Remove", cancelText: "Cancel");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await BikeBuildClient.RemoveBikeBuildComponentAsync(new RemoveBikeBuildComponentRequest { Id = bbc.Id });
+            Snackbar.Add("Component removed.", Severity.Success);
+            await LoadBikeBuild();
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            Snackbar.Add(ex.Status.Detail, Severity.Error);
+        }
+    }
+}

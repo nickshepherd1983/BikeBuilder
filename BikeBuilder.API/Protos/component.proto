@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+option csharp_namespace = "BikeBuilder.API.Protos";
+
+package bikebuilder;
+
+service ComponentService {
+  rpc ListComponents (ListComponentsRequest) returns (ListComponentsResponse);
+  rpc GetComponent (GetComponentRequest) returns (ComponentMessage);
+  rpc CreateComponent (CreateComponentRequest) returns (ComponentMessage);
+  rpc UpdateComponent (UpdateComponentRequest) returns (ComponentMessage);
+  rpc DeleteComponent (DeleteComponentRequest) returns (DeleteComponentResponse);
+}
+
+message ComponentMessage {
+  int32 id = 1;
+  string name = 2;
+  string cost = 3;
+  string description = 4;
+  bool has_image = 5;
+  int64 image_version = 6;
+}
+
+message ListComponentsRequest {
+}
+
+message ListComponentsResponse {
+  repeated ComponentMessage components = 1;
+}
+
+message GetComponentRequest {
+  int32 id = 1;
+}
+
+message CreateComponentRequest {
+  string name = 1;
+  string cost = 2;
+  string description = 3;
+}
+
+message UpdateComponentRequest {
+  int32 id = 1;
+  string name = 2;
+  string cost = 3;
+  string description = 4;
+}
+
+message DeleteComponentRequest {
+  int32 id = 1;
+}
+
+message DeleteComponentResponse {
+  bool success = 1;
+}

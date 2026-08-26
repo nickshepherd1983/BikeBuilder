@@ -1,0 +1,31 @@
+@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">BikeBuilder</MudText>
+<MudText Typo="Typo.body1">Manage your components and assemble your bike builds.</MudText>
+
+<MudGrid Class="mt-4">
+    <MudItem xs="12" sm="6">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Components</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">Maintain the catalog of parts you can use across bike builds.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="components" EndIcon="@Icons.Material.Filled.ArrowForward">Go to Components</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudCard>
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Bike Builds</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">Create bike builds and assemble them from your components.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="bikebuilds" EndIcon="@Icons.Material.Filled.ArrowForward">Go to Bike Builds</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

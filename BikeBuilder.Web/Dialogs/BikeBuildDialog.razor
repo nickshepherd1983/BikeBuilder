@@ -1,0 +1,48 @@
+<MudDialog>
+    <TitleContent>@Title</TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" />
+            <MudDatePicker @bind-Date="_date" Label="Date" Required="true" Class="mt-3" />
+            <MudTextField @bind-Value="_description" Label="Description" Lines="3" Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string Title { get; set; } = "Bike Build";
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public DateTime? Date { get; set; } = DateTime.Today;
+    [Parameter] public string Description { get; set; } = string.Empty;
+
+    private MudForm _form = null!;
+    private string _name = string.Empty;
+    private DateTime? _date = DateTime.Today;
+    private string _description = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _name = Name;
+        _date = Date;
+        _description = Description;
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || _date is null)
+        {
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok((_name, _date.Value, _description)));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
