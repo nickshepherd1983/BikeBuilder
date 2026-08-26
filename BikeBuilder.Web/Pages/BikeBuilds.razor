@@ -18,12 +18,14 @@
         <MudTh>Name</MudTh>
         <MudTh>Date</MudTh>
         <MudTh>Description</MudTh>
+        <MudTh>Total</MudTh>
         <MudTh Style="width: 1%;"></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Name">@context.Name</MudTd>
         <MudTd DataLabel="Date">@context.Date.ToDateTimeOffset().ToString("d")</MudTd>
         <MudTd DataLabel="Description">@context.Description</MudTd>
+        <MudTd DataLabel="Total">@FormatCost(context.Total)</MudTd>
         <MudTd DataLabel="">
             <MudStack Row="true" Spacing="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => EditBikeBuild(context.Id)" />
@@ -51,6 +53,11 @@
     }
 
     private void EditBikeBuild(int id) => Navigation.NavigateTo($"/bikebuilds/{id}/edit");
+
+    private static string FormatCost(string cost) =>
+        decimal.TryParse(cost, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value.ToString("C2")
+            : cost;
 
     private async Task CreateBikeBuild()
     {

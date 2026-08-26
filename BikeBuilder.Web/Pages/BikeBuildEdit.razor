@@ -37,9 +37,12 @@ else
 
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
         <MudText Typo="Typo.h5">Components</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddBikeBuildComponent">
-            Add Component
-        </MudButton>
+        <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">Total: @FormatCost(bikeBuild.Total)</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddBikeBuildComponent">
+                Add Component
+            </MudButton>
+        </MudStack>
     </MudStack>
 
     <MudTable Items="@bikeBuild.Components" Hover="true" Bordered="true">
@@ -78,6 +81,11 @@ else
     private string description = string.Empty;
 
     private void GoBackToList() => Navigation.NavigateTo("/bikebuilds");
+
+    private static string FormatCost(string cost) =>
+        decimal.TryParse(cost, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value.ToString("C2")
+            : cost;
 
     protected override async Task OnInitializedAsync()
     {

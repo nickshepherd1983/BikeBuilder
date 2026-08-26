@@ -1,10 +1,8 @@
-using BikeBuilder.API.Data;
 using BikeBuilder.API.Protos;
 using BikeBuilder.Contracts.Events;
-using BikeBuilder.Contracts.Messaging;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace BikeBuilder.API.Services;
 
@@ -12,7 +10,11 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
 {
     public override async Task<ListBikeBuildsResponse> ListBikeBuilds(ListBikeBuildsRequest request, ServerCallContext context)
     {
-        var bikeBuilds = await db.BikeBuilds.AsNoTracking().ToListAsync(context.CancellationToken);
+        var bikeBuilds = await db.BikeBuilds
+            .Include(b => b.BikeBuildComponents)
+            .ThenInclude(x => x.Component)
+            .AsNoTracking()
+            .ToListAsync(context.CancellationToken);
 
         var response = new ListBikeBuildsResponse();
         response.BikeBuilds.AddRange(bikeBuilds.Select(b => ToMessage(b, includeComponents: false)));
@@ -144,7 +146,8 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
             Id = bikeBuild.Id,
             Name = bikeBuild.Name,
             Date = Timestamp.FromDateTimeOffset(bikeBuild.Date),
-            Description = bikeBuild.Description
+            Description = bikeBuild.Description,
+            Total = bikeBuild.BikeBuildComponents.Sum(x => x.Component.Cost * x.Quantity).ToString(CultureInfo.InvariantCulture)
         };
 
         if (includeComponents)

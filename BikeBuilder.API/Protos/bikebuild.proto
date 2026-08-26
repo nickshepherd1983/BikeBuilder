@@ -24,6 +24,7 @@ message BikeBuildMessage {
   google.protobuf.Timestamp date = 3;
   string description = 4;
   repeated BikeBuildComponentMessage components = 5;
+  string total = 6;
 }
 
 message BikeBuildComponentMessage {
