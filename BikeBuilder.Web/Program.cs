@@ -1,10 +1,10 @@
-using BikeBuilder.API.Protos;
+﻿using BikeBuilder.API.Protos;
+using BikeBuilder.Web;
+using BikeBuilder.Web.Services;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using BikeBuilder.Web;
-using BikeBuilder.Web.Services;
 using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -19,8 +19,8 @@ var apiBaseAddress = builder.Configuration["ApiBaseAddress"] ?? "https://localho
 
 builder.Services.AddSingleton(_ =>
 {
-    var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new HttpClientHandler());
-    return GrpcChannel.ForAddress(apiBaseAddress, new GrpcChannelOptions { HttpHandler = httpHandler });
+  var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new HttpClientHandler());
+  return GrpcChannel.ForAddress(apiBaseAddress, new GrpcChannelOptions { HttpHandler = httpHandler });
 });
 
 builder.Services.AddScoped(sp => new ComponentService.ComponentServiceClient(sp.GetRequiredService<GrpcChannel>()));

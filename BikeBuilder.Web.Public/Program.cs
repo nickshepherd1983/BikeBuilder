@@ -1,4 +1,4 @@
-using Azure.Core;
+﻿using Azure.Core;
 using Azure.Core.Pipeline;
 using Azure.Security.KeyVault.Secrets;
 using BikeBuilder.Web.Public.Components;
@@ -22,11 +22,11 @@ var vaultUri = builder.Configuration["KeyVault:VaultUri"]
 // used to reach it. Safe here because this always targets the local emulator, never a real vault.
 var secretClient = new SecretClient(new Uri(vaultUri), new EmulatorTokenCredential(vaultUri), new SecretClientOptions
 {
-    DisableChallengeResourceVerification = true,
-    Transport = new HttpClientTransport(new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    })
+  DisableChallengeResourceVerification = true,
+  Transport = new HttpClientTransport(new HttpClientHandler
+  {
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+  })
 });
 var serviceBusConnectionString = (await secretClient.GetSecretAsync("ConnectionStrings--ServiceBus")).Value.Value;
 
@@ -38,9 +38,9 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+  app.UseExceptionHandler("/Error", createScopeForErrors: true);
+  // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+  app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
@@ -60,19 +60,19 @@ app.Run();
 // that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
 sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
 {
-    private static readonly HttpClient Client = new(new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    });
+  private static readonly HttpClient Client = new(new HttpClientHandler
+  {
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+  });
 
-    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
-        GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
+  public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
+      GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
 
-    public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
-    {
-        var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var token = await response.Content.ReadAsStringAsync(cancellationToken);
-        return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
-    }
+  public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+  {
+    var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
+    response.EnsureSuccessStatusCode();
+    var token = await response.Content.ReadAsStringAsync(cancellationToken);
+    return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
+  }
 }

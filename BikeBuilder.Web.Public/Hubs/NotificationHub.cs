@@ -1,4 +1,4 @@
-namespace BikeBuilder.Web.Public.Hubs;
+﻿namespace BikeBuilder.Web.Public.Hubs;
 
 public class NotificationHub : Hub
 {

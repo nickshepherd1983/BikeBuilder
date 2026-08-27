@@ -1,6 +1,6 @@
-namespace BikeBuilder.Contracts.Messaging;
+﻿namespace BikeBuilder.Contracts.Messaging;
 
 public static class ServiceBusQueueNames
 {
-    public const string Notifications = "bikebuilder-notifications";
+  public const string Notifications = "bikebuilder-notifications";
 }

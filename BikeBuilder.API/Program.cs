@@ -1,4 +1,4 @@
-using Azure.Core;
+﻿using Azure.Core;
 using Azure.Core.Pipeline;
 using Azure.Messaging.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
@@ -18,20 +18,20 @@ var vaultUri = builder.Configuration["KeyVault:VaultUri"]
 // used to reach it. Safe here because this always targets the local emulator, never a real vault.
 var secretClient = new SecretClient(new Uri(vaultUri), new EmulatorTokenCredential(vaultUri), new SecretClientOptions
 {
-    DisableChallengeResourceVerification = true,
-    Transport = new HttpClientTransport(new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    })
+  DisableChallengeResourceVerification = true,
+  Transport = new HttpClientTransport(new HttpClientHandler
+  {
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+  })
 });
 
 async Task<string> GetSecretAsync(string name) => (await secretClient.GetSecretAsync(name)).Value.Value;
 
 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 {
-    ["ConnectionStrings:BikeBuilderDb"] = await GetSecretAsync("ConnectionStrings--BikeBuilderDb"),
-    ["ConnectionStrings:BlobStorage"] = await GetSecretAsync("ConnectionStrings--BlobStorage"),
-    ["ConnectionStrings:ServiceBus"] = await GetSecretAsync("ConnectionStrings--ServiceBus")
+  ["ConnectionStrings:BikeBuilderDb"] = await GetSecretAsync("ConnectionStrings--BikeBuilderDb"),
+  ["ConnectionStrings:BlobStorage"] = await GetSecretAsync("ConnectionStrings--BlobStorage"),
+  ["ConnectionStrings:ServiceBus"] = await GetSecretAsync("ConnectionStrings--ServiceBus")
 });
 
 builder.Services.AddDbContext<BikeBuilderDbContext>(options =>
@@ -50,11 +50,11 @@ var webAppOrigins = builder.Configuration.GetSection("WebAppOrigins").Get<string
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("BlazorWasmClient", policy =>
-        policy.WithOrigins(webAppOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding"));
+  options.AddPolicy("BlazorWasmClient", policy =>
+      policy.WithOrigins(webAppOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding"));
 });
 
 var app = builder.Build();
@@ -76,19 +76,19 @@ app.Run();
 // that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
 sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
 {
-    private static readonly HttpClient Client = new(new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    });
+  private static readonly HttpClient Client = new(new HttpClientHandler
+  {
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+  });
 
-    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
-        GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
+  public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
+      GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
 
-    public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
-    {
-        var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var token = await response.Content.ReadAsStringAsync(cancellationToken);
-        return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
-    }
+  public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+  {
+    var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
+    response.EnsureSuccessStatusCode();
+    var token = await response.Content.ReadAsStringAsync(cancellationToken);
+    return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
+  }
 }
