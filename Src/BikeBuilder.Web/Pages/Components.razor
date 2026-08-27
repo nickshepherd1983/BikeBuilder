@@ -15,6 +15,8 @@
         <MudTh Style="width: 1%;"></MudTh>
         <MudTh>Name</MudTh>
         <MudTh>Cost</MudTh>
+        <MudTh>SKU</MudTh>
+        <MudTh>Manufacturer</MudTh>
         <MudTh>Description</MudTh>
         <MudTh Style="width: 1%;"></MudTh>
     </HeaderContent>
@@ -33,6 +35,8 @@
         </MudTd>
         <MudTd DataLabel="Name">@context.Name</MudTd>
         <MudTd DataLabel="Cost">@FormatCost(context.Cost)</MudTd>
+        <MudTd DataLabel="SKU">@context.Sku</MudTd>
+        <MudTd DataLabel="Manufacturer">@context.Manufacturer</MudTd>
         <MudTd DataLabel="Description">@context.Description</MudTd>
         <MudTd DataLabel="">
             <MudStack Row="true" Spacing="1">

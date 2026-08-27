@@ -25,7 +25,9 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     {
       Name = request.Name,
       Cost = ParseCost(request.Cost),
-      Description = request.Description
+      Description = request.Description,
+      Sku = request.Sku,
+      Manufacturer = (Data.Entities.Manufacturer)(int)request.Manufacturer
     };
 
     db.Components.Add(component);
@@ -52,6 +54,8 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     component.Name = request.Name;
     component.Cost = ParseCost(request.Cost);
     component.Description = request.Description;
+    component.Sku = request.Sku;
+    component.Manufacturer = (Data.Entities.Manufacturer)(int)request.Manufacturer;
 
     await db.SaveChangesAsync(context.CancellationToken);
 
@@ -87,6 +91,8 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     Name = component.Name,
     Cost = component.Cost.ToString(CultureInfo.InvariantCulture),
     Description = component.Description,
+    Sku = component.Sku,
+    Manufacturer = (Protos.Manufacturer)(int)component.Manufacturer,
     HasImage = component.Image is not null,
     ImageVersion = component.Image?.UploadedAt.UtcTicks ?? 0
   };

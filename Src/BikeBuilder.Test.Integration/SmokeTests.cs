@@ -43,7 +43,8 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
 
     // First navigation drives the stub OIDC login flow - this is the "log in" step.
     await components.GotoAsync();
-    await components.AddComponentAsync(frameName, "899.99", "Lightweight frame");
+    await components.AddComponentAsync(frameName, "899.99", "Lightweight frame", sku: "CF-1001", manufacturer: "Hope");
+    Assert.True(await components.RowContainsAsync(frameName, "CF-1001", "Hope"));
 
     var imagePath = Path.Combine(AppContext.BaseDirectory, "TestAssets", "test-image.png");
     await components.UploadImageToRowAsync(frameName, imagePath);

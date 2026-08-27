@@ -42,11 +42,18 @@ public partial class Components(
     if (result is null || result.Canceled)
       return;
 
-    var (name, cost, description) = ((string, string, string))result.Data!;
+    var (name, cost, description, sku, manufacturer) = ((string, string, string, string, Manufacturer))result.Data!;
 
     try
     {
-      await _componentClient.CreateComponentAsync(new CreateComponentRequest { Name = name, Cost = cost, Description = description });
+      await _componentClient.CreateComponentAsync(new CreateComponentRequest
+      {
+        Name = name,
+        Cost = cost,
+        Description = description,
+        Sku = sku,
+        Manufacturer = manufacturer
+      });
       _snackbar.Add("Component added.", Severity.Success);
       await LoadComponents();
     }
@@ -63,7 +70,9 @@ public partial class Components(
       { x => x.Title, "Edit Component" },
       { x => x.Name, component.Name },
       { x => x.Cost, component.Cost },
-      { x => x.Description, component.Description }
+      { x => x.Description, component.Description },
+      { x => x.Sku, component.Sku },
+      { x => x.Manufacturer, component.Manufacturer }
     };
 
     var dialog = await _dialogService.ShowAsync<ComponentDialog>("Edit Component", parameters);
@@ -72,7 +81,7 @@ public partial class Components(
     if (result is null || result.Canceled)
       return;
 
-    var (name, cost, description) = ((string, string, string))result.Data!;
+    var (name, cost, description, sku, manufacturer) = ((string, string, string, string, Manufacturer))result.Data!;
 
     try
     {
@@ -81,7 +90,9 @@ public partial class Components(
         Id = component.Id,
         Name = name,
         Cost = cost,
-        Description = description
+        Description = description,
+        Sku = sku,
+        Manufacturer = manufacturer
       });
       _snackbar.Add("Component updated.", Severity.Success);
       await LoadComponents();

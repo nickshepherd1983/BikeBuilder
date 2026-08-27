@@ -5,6 +5,13 @@
             <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="Name is required" />
             <MudTextField @bind-Value="_cost" Label="Cost" Required="true" RequiredError="Cost is required"
                           Validation="@(new Func<string, string?>(ValidateCost))" Class="mt-3" Adornment="Adornment.Start" AdornmentText="$" />
+            <MudTextField @bind-Value="_sku" Label="SKU" Class="mt-3" />
+            <MudSelect T="Manufacturer" @bind-Value="_manufacturer" Label="Manufacturer" Class="mt-3">
+                @foreach (var manufacturer in Manufacturers)
+                {
+                    <MudSelectItem T="Manufacturer" Value="manufacturer">@manufacturer</MudSelectItem>
+                }
+            </MudSelect>
             <MudTextField @bind-Value="_description" Label="Description" Lines="3" Class="mt-3" />
         </MudForm>
     </DialogContent>

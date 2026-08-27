@@ -12,6 +12,14 @@ service ComponentService {
   rpc DeleteComponent (DeleteComponentRequest) returns (DeleteComponentResponse);
 }
 
+// Prefixed per proto3 style; protoc strips the prefix, so C# sees Manufacturer.Other etc.
+enum Manufacturer {
+  MANUFACTURER_OTHER = 0;
+  MANUFACTURER_SRAM = 1;
+  MANUFACTURER_SHIMANO = 2;
+  MANUFACTURER_HOPE = 3;
+}
+
 message ComponentMessage {
   int32 id = 1;
   string name = 2;
@@ -19,6 +27,8 @@ message ComponentMessage {
   string description = 4;
   bool has_image = 5;
   int64 image_version = 6;
+  string sku = 7;
+  Manufacturer manufacturer = 8;
 }
 
 message ListComponentsRequest {
@@ -36,6 +46,8 @@ message CreateComponentRequest {
   string name = 1;
   string cost = 2;
   string description = 3;
+  string sku = 4;
+  Manufacturer manufacturer = 5;
 }
 
 message UpdateComponentRequest {
@@ -43,6 +55,8 @@ message UpdateComponentRequest {
   string name = 2;
   string cost = 3;
   string description = 4;
+  string sku = 5;
+  Manufacturer manufacturer = 6;
 }
 
 message DeleteComponentRequest {
