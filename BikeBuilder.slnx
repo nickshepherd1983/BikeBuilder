@@ -6,6 +6,7 @@
     <Project Path="Src/BikeBuilder.API/BikeBuilder.API.csproj" />
     <Project Path="Src/BikeBuilder.API.Ratings/BikeBuilder.API.Ratings.csproj" />
     <Project Path="Src/BikeBuilder.Contracts/BikeBuilder.Contracts.csproj" />
+    <Project Path="Src/BikeBuilder.DataSeeder/BikeBuilder.DataSeeder.csproj" />
     <Project Path="Src/BikeBuilder.Test.Integration/BikeBuilder.Test.Integration.csproj" />
     <Project Path="Src/BikeBuilder.Web.Public/BikeBuilder.Web.Public.csproj" />
     <Project Path="Src/BikeBuilder.Web/BikeBuilder.Web.csproj" />
