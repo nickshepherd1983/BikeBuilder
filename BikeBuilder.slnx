@@ -1,5 +1,7 @@
 <Solution>
-  <Folder Name="/SolutionItems/" />
+  <Folder Name="/SolutionItems/">
+    <File Path=".editorconfig" />
+  </Folder>
   <Project Path="BikeBuilder.API/BikeBuilder.API.csproj" />
   <Project Path="BikeBuilder.Contracts/BikeBuilder.Contracts.csproj" />
   <Project Path="BikeBuilder.Test.Integration/BikeBuilder.Test.Integration.csproj" />
