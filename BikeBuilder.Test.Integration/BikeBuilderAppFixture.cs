@@ -1,3 +1,6 @@
+using Azure.Security.KeyVault.Secrets;
+using AzureKeyVaultEmulator.TestContainers;
+using AzureKeyVaultEmulator.TestContainers.Helpers;
 using BikeBuilder.API.Data;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
@@ -28,11 +31,16 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     private const string ServiceBusConnectionString =
         "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
+    private const int KeyVaultContainerPort = 4997;
+    private const string KeyVaultNetworkAlias = "keyvault-emulator";
+    private static readonly string KeyVaultVaultUri = $"https://{KeyVaultNetworkAlias}:{KeyVaultContainerPort}";
+
     private INetwork _network = null!;
     private MsSqlContainer _sql = null!;
     private AzuriteContainer _azurite = null!;
     private IContainer _serviceBusSql = null!;
     private IContainer _serviceBus = null!;
+    private AzureKeyVaultEmulatorContainer _keyVault = null!;
     private IFutureDockerImage _apiImage = null!;
     private IFutureDockerImage _webImage = null!;
     private IFutureDockerImage _webPublicImage = null!;
@@ -101,8 +109,25 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("Emulator Service is Successfully Up!"))
             .Build();
 
-        await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync());
+        _keyVault = new AzureKeyVaultEmulatorContainer();
+
+        await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync());
         await _serviceBus.StartAsync();
+
+        // AzureKeyVaultEmulatorContainer doesn't expose Testcontainers' network-attachment API
+        // (WithNetwork/WithNetworkAliases) - it's a standalone wrapper, not a DotNet.Testcontainers
+        // IContainer. Join it to _network after the fact via the Docker CLI using its container Id,
+        // so _api/_webPublic (already on _network) can reach it at KeyVaultVaultUri.
+        await RunDockerCommandAsync($"network connect {_network.Name} {_keyVault.Id} --alias {KeyVaultNetworkAlias}");
+
+        // Seed the secrets the API/Web.Public containers will fetch for themselves at startup,
+        // using the emulator's host-mapped port (this runs on the test host, not inside a container).
+        var keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
+        await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
+            "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True");
+        await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BlobStorage",
+            "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;");
+        await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--ServiceBus", ServiceBusConnectionString);
 
         var options = new DbContextOptionsBuilder<BikeBuilderDbContext>()
             .UseSqlServer(_sql.GetConnectionString())
@@ -142,11 +167,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithNetwork(_network)
             .WithNetworkAliases("api")
             .WithPortBinding(ApiHostPort, 8080)
-            .WithEnvironment("ConnectionStrings__BikeBuilderDb",
-                "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True")
-            .WithEnvironment("ConnectionStrings__BlobStorage",
-                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;")
-            .WithEnvironment("ConnectionStrings__ServiceBus", ServiceBusConnectionString)
+            .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
             .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
             .Build();
@@ -166,7 +187,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .WithNetwork(_network)
             .WithNetworkAliases("web-public")
             .WithPortBinding(WebPublicHostPort, 8080)
-            .WithEnvironment("ConnectionStrings__ServiceBus", ServiceBusConnectionString)
+            .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
             .Build();
 #pragma warning restore CS0618
@@ -206,6 +227,23 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
                 "--no-first-run",
             ],
         });
+    }
+
+    private static async Task RunDockerCommandAsync(string arguments)
+    {
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", arguments)
+        {
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        })!;
+        await process.WaitForExitAsync();
+
+        if (process.ExitCode != 0)
+        {
+            var error = await process.StandardError.ReadToEndAsync();
+            throw new InvalidOperationException($"docker {arguments} failed: {error}");
+        }
     }
 
     private static async Task WaitUntilReachableAsync(string baseUrl)
@@ -270,6 +308,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         if (_serviceBusSql is not null)
         {
             await _serviceBusSql.DisposeAsync();
+        }
+
+        if (_keyVault is not null)
+        {
+            await _keyVault.DisposeAsync();
         }
 
         if (_sql is not null)
