@@ -6,13 +6,22 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
 {
   public override async Task<ListBikeBuildsResponse> ListBikeBuilds(ListBikeBuildsRequest request, ServerCallContext context)
   {
+    var page = Math.Max(request.Page, 1);
+    var pageSize = Math.Clamp(request.PageSize <= 0 ? 20 : request.PageSize, 1, 100);
+
+    var totalCount = await db.BikeBuilds.CountAsync(context.CancellationToken);
+
     var bikeBuilds = await db.BikeBuilds
         .Include(b => b.BikeBuildComponents)
         .ThenInclude(x => x.Component)
         .AsNoTracking()
+        .OrderByDescending(b => b.Date)
+        .ThenByDescending(b => b.Id)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
         .ToListAsync(context.CancellationToken);
 
-    var response = new ListBikeBuildsResponse();
+    var response = new ListBikeBuildsResponse { TotalCount = totalCount };
     response.BikeBuilds.AddRange(bikeBuilds.Select(b => ToMessage(b, includeComponents: false)));
     return response;
   }

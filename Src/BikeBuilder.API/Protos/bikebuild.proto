@@ -37,10 +37,13 @@ message BikeBuildComponentMessage {
 }
 
 message ListBikeBuildsRequest {
+  int32 page = 1;      // 1-based; 0 (proto3 default) is treated as page 1
+  int32 page_size = 2; // 0 (proto3 default) is treated as 20
 }
 
 message ListBikeBuildsResponse {
   repeated BikeBuildMessage bike_builds = 1;
+  int32 total_count = 2;
 }
 
 message GetBikeBuildRequest {

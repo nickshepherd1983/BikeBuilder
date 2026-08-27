@@ -7,26 +7,28 @@ public partial class BikeBuilds(
     ISnackbar _snackbar,
     NavigationManager _navigation)
 {
-  List<BikeBuildMessage>? _bikeBuilds;
+  MudTable<BikeBuildMessage>? _table;
   Dictionary<int, RatingSummaryDto>? _ratingSummaries;
 
-  protected override async Task OnInitializedAsync()
+  async Task<TableData<BikeBuildMessage>> LoadBikeBuildsAsync(TableState state, CancellationToken cancellationToken)
   {
-    await LoadBikeBuilds();
+    // MudTable pages are 0-based; the RPC is 1-based.
+    var response = await _bikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest
+    {
+      Page = state.Page + 1,
+      PageSize = state.PageSize
+    }, cancellationToken: cancellationToken);
+
+    await LoadRatingSummaries(response.BikeBuilds.Select(b => b.Id));
+
+    return new TableData<BikeBuildMessage> { Items = response.BikeBuilds, TotalItems = response.TotalCount };
   }
 
-  async Task LoadBikeBuilds()
-  {
-    var response = await _bikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest());
-    _bikeBuilds = [.. response.BikeBuilds];
-    await LoadRatingSummaries();
-  }
-
-  async Task LoadRatingSummaries()
+  async Task LoadRatingSummaries(IEnumerable<int> bikeBuildIds)
   {
     try
     {
-      _ratingSummaries = await _ratingsClient.GetSummariesAsync(_bikeBuilds!.Select(b => b.Id));
+      _ratingSummaries = await _ratingsClient.GetSummariesAsync(bikeBuildIds);
     }
     catch (HttpRequestException)
     {
@@ -98,7 +100,7 @@ public partial class BikeBuilds(
     {
       await _bikeBuildClient.DeleteBikeBuildAsync(new DeleteBikeBuildRequest { Id = bikeBuild.Id });
       _snackbar.Add("Bike build deleted.", Severity.Success);
-      await LoadBikeBuilds();
+      await _table!.ReloadServerData();
     }
     catch (RpcException ex)
     {

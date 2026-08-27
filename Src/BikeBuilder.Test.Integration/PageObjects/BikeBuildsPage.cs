@@ -13,6 +13,8 @@ public class BikeBuildsPage(IPage page, string baseUrl)
 
   public ILocator AverageRatingCell(string buildName) => RowByName(buildName).Locator("td:nth-child(6)");
 
+  public ILocator Pager => page.Locator(".mud-table-pagination");
+
   public async Task<BikeBuildEditPage> CreateBikeBuildAsync(string name, string description)
   {
     await RetryHelper.RunAsync(async () =>

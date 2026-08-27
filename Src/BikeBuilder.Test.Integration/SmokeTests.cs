@@ -82,5 +82,6 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     await bikeBuilds.GotoAsync();
     await Expect(bikeBuilds.RatingsCountCell(buildName)).ToHaveTextAsync("2");
     await Expect(bikeBuilds.AverageRatingCell(buildName)).ToHaveTextAsync("4.5");
+    await Expect(bikeBuilds.Pager).ToBeVisibleAsync();
   }
 }

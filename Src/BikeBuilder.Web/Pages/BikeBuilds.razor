@@ -10,7 +10,7 @@
     </MudButton>
 </MudStack>
 
-<MudTable Items="@_bikeBuilds" Loading="@(_bikeBuilds is null)" Hover="true" Bordered="true">
+<MudTable T="BikeBuildMessage" @ref="_table" ServerData="LoadBikeBuildsAsync" RowsPerPage="20" Hover="true" Bordered="true">
     <HeaderContent>
         <MudTh>Name</MudTh>
         <MudTh>Date</MudTh>
@@ -37,4 +37,7 @@
     <NoRecordsContent>
         <MudText>No bike builds yet. Create one to get started.</MudText>
     </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="[10, 20, 50]" />
+    </PagerContent>
 </MudTable>
