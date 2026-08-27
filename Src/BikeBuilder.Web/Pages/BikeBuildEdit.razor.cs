@@ -2,7 +2,6 @@
 
 public partial class BikeBuildEdit(
     BikeBuildService.BikeBuildServiceClient _bikeBuildClient,
-    ComponentService.ComponentServiceClient _componentClient,
     RatingsClient _ratingsClient,
     IDialogService _dialogService,
     ISnackbar _snackbar,
@@ -12,7 +11,6 @@ public partial class BikeBuildEdit(
 
   MudForm _form = null!;
   BikeBuildMessage? _bikeBuild;
-  List<ComponentMessage>? _allComponents;
 
   string _name = string.Empty;
   DateTime? _date = DateTime.Today;
@@ -31,9 +29,6 @@ public partial class BikeBuildEdit(
 
   protected override async Task OnInitializedAsync()
   {
-    var componentsResponse = await _componentClient.ListComponentsAsync(new ListComponentsRequest());
-    _allComponents = componentsResponse.Components.ToList();
-
     await LoadBikeBuild();
     await LoadRatings();
   }
@@ -117,8 +112,7 @@ public partial class BikeBuildEdit(
   {
     var parameters = new DialogParameters<BikeBuildComponentDialog>
     {
-      { x => x.Title, "Add Component" },
-      { x => x.AllComponents, _allComponents! }
+      { x => x.Title, "Add Component" }
     };
 
     var dialog = await _dialogService.ShowAsync<BikeBuildComponentDialog>("Add Component", parameters);
@@ -153,8 +147,8 @@ public partial class BikeBuildEdit(
     var parameters = new DialogParameters<BikeBuildComponentDialog>
     {
       { x => x.Title, "Edit Component" },
-      { x => x.AllComponents, _allComponents! },
       { x => x.ComponentId, bbc.ComponentId },
+      { x => x.ComponentName, bbc.ComponentName },
       { x => x.Quantity, bbc.Quantity },
       { x => x.Date, bbc.Date.ToDateTimeOffset().Date }
     };

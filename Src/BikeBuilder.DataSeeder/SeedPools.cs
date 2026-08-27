@@ -2,14 +2,18 @@ namespace BikeBuilder.DataSeeder;
 
 public static class SeedPools
 {
-  public static readonly string[] BuildNames =
+  static readonly string[] BuildThemes =
   [
-    "Weekend Trail Ripper", "Enduro Park Sled", "XC Race Whippet", "Downcountry Daily",
-    "Bikepacking Mule", "Steel Hardtail Classic", "Alps Trip Enduro", "Mud Season Beater",
-    "Dream Downhill Rig", "Budget Trail Hardtail", "Superlight Climber", "Flow Trail Jumper",
-    "Backyard Dirt Jumper", "Winter Commuter Tank", "Gran Fondo Special", "Gravel Century Rig",
-    "All-Mountain Do-It-All", "Race Day Rocket", "Loam Hunter", "Shed Build Special"
+    "Weekend", "Enduro", "XC", "Downcountry", "Bikepacking", "Steel", "Titanium", "Vintage",
+    "Alpine", "Desert", "Coastal", "Midnight", "Rowdy", "Budget", "Superlight", "Race Day",
+    "Backyard", "Winter", "Big Mountain", "Loam"
   ];
+
+  static readonly string[] BuildRigs = ["Ripper", "Sled", "Whippet", "Mule", "Rocket"];
+
+  // 20 themes x 5 rigs = 100 distinct build names ("Alpine Sled", "Midnight Whippet", ...).
+  public static readonly string[] BuildNames =
+      [.. BuildThemes.SelectMany(theme => BuildRigs.Select(rig => $"{theme} {rig}"))];
 
   public static readonly string[] BuildDescriptions =
   [

@@ -92,7 +92,7 @@ for (var i = 0; i < SeedPools.BuildNames.Length; i++)
   {
     Name = SeedPools.BuildNames[i],
     Date = date,
-    Description = SeedPools.BuildDescriptions[i]
+    Description = SeedPools.BuildDescriptions[i % SeedPools.BuildDescriptions.Length]
   };
 
   var picks = Enumerable.Range(0, catalog.Count).OrderBy(_ => random.Next()).Take(random.Next(6, 13));

@@ -4,7 +4,17 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
 {
   public override async Task<ListComponentsResponse> ListComponents(ListComponentsRequest request, ServerCallContext context)
   {
-    var components = await db.Components.Include(c => c.Image).AsNoTracking().ToListAsync(context.CancellationToken);
+    IQueryable<Data.Entities.Component> query = db.Components.Include(c => c.Image).AsNoTracking();
+
+    if (!string.IsNullOrWhiteSpace(request.Search))
+      query = query.Where(c => c.Name.Contains(request.Search) || c.Sku.Contains(request.Search));
+
+    query = query.OrderBy(c => c.Name);
+
+    if (request.Limit > 0)
+      query = query.Take(request.Limit);
+
+    var components = await query.ToListAsync(context.CancellationToken);
 
     var response = new ListComponentsResponse();
     response.Components.AddRange(components.Select(ToMessage));

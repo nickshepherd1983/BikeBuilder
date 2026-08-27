@@ -32,6 +32,8 @@ message ComponentMessage {
 }
 
 message ListComponentsRequest {
+  string search = 1; // optional name/SKU filter; empty returns everything
+  int32 limit = 2;   // optional cap on results; 0 means no cap
 }
 
 message ListComponentsResponse {

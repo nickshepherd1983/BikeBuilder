@@ -2,12 +2,10 @@
     <TitleContent>@Title</TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
-            <MudSelect T="int" @bind-Value="_componentId" Label="Component" Required="true">
-                @foreach (var component in AllComponents)
-                {
-                    <MudSelectItem T="int" Value="component.Id">@component.Name</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="ComponentMessage" @bind-Value="_component" Label="Component"
+                             Required="true" RequiredError="Component is required"
+                             SearchFunc="SearchComponentsAsync" ToStringFunc="@(c => c?.Name)"
+                             MinCharacters="0" DebounceInterval="300" Clearable="true" />
             <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="1" Required="true" Class="mt-3" />
             <MudDatePicker @bind-Date="_date" Label="Date" Required="true" Class="mt-3" />
         </MudForm>

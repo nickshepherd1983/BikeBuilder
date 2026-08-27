@@ -12,10 +12,9 @@ public class BikeBuildEditPage(IPage page)
     }
 
     await page.GetByRole(AriaRole.Button, new() { Name = "Add Component" }).ClickAsync();
-    // MudSelect renders both a hidden <input role="combobox"> and the visible <div role="combobox">
-    // sharing the same aria-label - GetByLabel/GetByRole alone match both. Scope to the div.
-    await dialog.Locator("div[role='combobox'][aria-label='Component']").ClickAsync();
-    await page.GetByRole(AriaRole.Option, new() { Name = componentName }).ClickAsync();
+    // Type into the autocomplete, then pick the matching suggestion from its popover.
+    await dialog.GetByLabel("Component").FillAsync(componentName);
+    await page.Locator(".mud-popover .mud-list-item").Filter(new() { HasText = componentName }).First.ClickAsync();
     await dialog.GetByLabel("Quantity").FillAsync(quantity.ToString());
     await dialog.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 

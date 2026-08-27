@@ -2,7 +2,7 @@
 
 public partial class MainLayout
 {
-  bool _drawerOpen = true;
+  bool _drawerOpen;
 
   // Palette and type lifted from jensonusa.com: navy header #00263A, accent red #CF0030, Lato.
   readonly MudTheme _theme = new()
