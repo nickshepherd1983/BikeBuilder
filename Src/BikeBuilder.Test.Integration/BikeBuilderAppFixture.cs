@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics;
+using Azure.Core;
+using Azure.Core.Pipeline;
 using Azure.Security.KeyVault.Secrets;
 using AzureKeyVaultEmulator.TestContainers;
-using AzureKeyVaultEmulator.TestContainers.Helpers;
 using BikeBuilder.API.Data;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
@@ -231,7 +232,10 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     // Seed the secrets the API/Web.Public containers will fetch for themselves at startup,
     // using the emulator's host-mapped port (this runs on the test host, not inside a container).
-    var keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
+    // The wrapper's AzureKeyVaultEmulatorClientHelper returns a client pinned to the port cached
+    // at StartAsync, which CI diagnostics showed going stale (client on :32769 while docker port
+    // reported :32778) - so build our own client against the port Docker reports right now.
+    var keyVaultSecretClient = CreateKeyVaultSeedClient(await GetKeyVaultHostPortAsync());
     Task SeedFirstSecretAsync() => keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
         "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True");
 
@@ -239,7 +243,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // host-mapped port dead (connection refused) even though the emulator is listening inside
     // the container. If a short retry window doesn't recover, restart the container so Docker
     // rebuilds the host port-forwarding with both networks attached, then re-resolve the
-    // client in case the mapped port moved.
+    // client since the mapped port moves on restart.
     try
     {
       await WaitUntilSucceedsAsync(SeedFirstSecretAsync, timeoutSeconds: 30);
@@ -247,7 +251,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     catch (InvalidOperationException)
     {
       await RunDockerCommandAsync($"restart {_keyVault.Id}");
-      keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
+      keyVaultSecretClient = CreateKeyVaultSeedClient(await GetKeyVaultHostPortAsync());
       try
       {
         await WaitUntilSucceedsAsync(SeedFirstSecretAsync, timeoutSeconds: 150);
@@ -405,6 +409,40 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
                 "--disable-ipc-flooding-protection",
                 "--no-first-run",
             ],
+    });
+  }
+
+  // Resolves the emulator's CURRENT host-mapped port straight from Docker: the wrapper's own
+  // helper (and Testcontainers' mapped-port API) reflect the state cached at StartAsync, which
+  // goes stale if the container is restarted.
+  async Task<int> GetKeyVaultHostPortAsync()
+  {
+    using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", $"port {_keyVault.Id} {KeyVaultContainerPort}/tcp")
+    {
+      RedirectStandardError = true,
+      RedirectStandardOutput = true,
+      UseShellExecute = false,
+    })!;
+    var output = await process.StandardOutput.ReadToEndAsync();
+    await process.WaitForExitAsync();
+
+    var firstBinding = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim()
+        ?? throw new InvalidOperationException($"docker port reported no binding for the Key Vault emulator ({_keyVault.Id}).");
+    return int.Parse(firstBinding[(firstBinding.LastIndexOf(':') + 1)..]);
+  }
+
+  // Same emulator-friendly client the apps use (see BikeBuilder.API/Program.cs): the emulator's
+  // self-signed cert isn't in the host trust store, and its /token endpoint stands in for AAD.
+  static SecretClient CreateKeyVaultSeedClient(int hostPort)
+  {
+    var vaultUri = $"https://localhost:{hostPort}";
+    return new SecretClient(new Uri(vaultUri), new EmulatorTokenCredential(vaultUri), new SecretClientOptions
+    {
+      DisableChallengeResourceVerification = true,
+      Transport = new HttpClientTransport(new HttpClientHandler
+      {
+        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+      })
     });
   }
 
@@ -568,5 +606,28 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     if (_network is not null)
       await _network.DeleteAsync();
+  }
+}
+
+// Mirrors AzureKeyVaultEmulator.Client's own (now-obsolete) EmulatedTokenCredential - fetches a
+// bearer token from the emulator's /token endpoint - but with a cert-trusting HttpClient, since
+// that type's internal HttpClient can't be configured and fails TLS against untrusted certs.
+// Same copy as in BikeBuilder.API/Program.cs.
+sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
+{
+  static readonly HttpClient Client = new(new HttpClientHandler
+  {
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+  });
+
+  public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
+      GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
+
+  public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+  {
+    var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
+    response.EnsureSuccessStatusCode();
+    var token = await response.Content.ReadAsStringAsync(cancellationToken);
+    return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
   }
 }
