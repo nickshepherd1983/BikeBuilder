@@ -22,15 +22,36 @@ h1:focus {
     letter-spacing: .08em;
 }
 
-/* Footer bar spans the full viewport width, above the nav drawer. The extra
-   .mud-layout ancestor out-specifies MudBlazor's own `left: auto` on
-   .mud-appbar-fixed-bottom, which otherwise shrinks the bar to its content -
-   necessary because this stylesheet loads before MudBlazor.min.css. */
+/* Footer bar spans the full viewport width, above the nav drawer. !important
+   because MudBlazor both anchors bottom-fixed appbars with `left: auto` and
+   offsets appbars beside an open/mini drawer - and this stylesheet loads
+   before MudBlazor.min.css, so specificity alone can't win reliably. */
 .mud-layout .mud-appbar.app-footer {
-    left: 0;
-    right: 0;
-    width: 100%;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
     z-index: 1301;
+}
+
+/* Punchy grid headers: soft navy-tinted band, navy uppercase tracked labels -
+   a step darker than the #F2F5F7 row stripe so the header still reads as one */
+.mud-table thead .mud-table-cell {
+    background-color: #E1E9EE !important;
+    color: #00263A !important;
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: .06em;
+    font-size: .95rem;
+    /* Lato tops out at weight 900 - stroke the glyphs to push past it */
+    -webkit-text-stroke: 0.5px currentColor;
+    border-bottom: none;
+}
+
+/* No grid lines - striping (Striped="true") separates the rows instead */
+.mud-table tbody .mud-table-cell {
+    border-bottom: none;
 }
 
 /* Snackbar toasts in site colors: navy panel, white text, red icons/actions.

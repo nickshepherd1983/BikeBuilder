@@ -15,7 +15,8 @@ public partial class MainLayout
       AppbarText = "#FFFFFF",
       Background = "#FFFFFF",
       DrawerBackground = "#FFFFFF",
-      TextPrimary = "#333333"
+      TextPrimary = "#333333",
+      TableStriped = "#F2F5F7"
     },
     PaletteDark = new PaletteDark
     {
