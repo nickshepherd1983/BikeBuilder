@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build solution
+        run: dotnet build BikeBuilder.slnx
+
+  integration-test:
+    needs: build
+    runs-on: ubuntu-latest
+    # The fixture builds Docker images of all four apps and starts SQL Server, Azurite, and
+    # the Service Bus / Key Vault / Cosmos emulators plus a stub OIDC issuer - slow on a cold
+    # runner, so give it plenty of headroom.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build test project
+        run: dotnet build BikeBuilder.Test.Integration
+
+      - name: Install Playwright browsers
+        run: pwsh BikeBuilder.Test.Integration/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+
+      - name: Run integration tests
+        run: dotnet test BikeBuilder.Test.Integration --no-build --logger "console;verbosity=minimal"
+
+      # Failure screenshots + console logs, and the Playwright videos of every run.
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: BikeBuilder.Test.Integration/bin/Debug/net10.0/TestResults/
+          if-no-files-found: ignore
