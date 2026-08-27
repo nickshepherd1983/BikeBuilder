@@ -232,19 +232,32 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // Seed the secrets the API/Web.Public containers will fetch for themselves at startup,
     // using the emulator's host-mapped port (this runs on the test host, not inside a container).
     var keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
-    // The emulator can report ready before its host-mapped port accepts connections (seen as
-    // connection-refused on GitHub Actions runners) - retry the first call until it's truly up,
-    // and surface the emulator's own logs if it never comes up so CI failures are diagnosable.
+    Task SeedFirstSecretAsync() => keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
+        "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True");
+
+    // On Linux CI runners the network connect above has been seen to leave the emulator's
+    // host-mapped port dead (connection refused) even though the emulator is listening inside
+    // the container. If a short retry window doesn't recover, restart the container so Docker
+    // rebuilds the host port-forwarding with both networks attached, then re-resolve the
+    // client in case the mapped port moved.
     try
     {
-      await WaitUntilSucceedsAsync(async () => await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
-          "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True"),
-          timeoutSeconds: 180);
+      await WaitUntilSucceedsAsync(SeedFirstSecretAsync, timeoutSeconds: 30);
     }
-    catch (InvalidOperationException ex)
+    catch (InvalidOperationException)
     {
-      var diagnostics = await CaptureDockerDiagnosticsAsync(_keyVault.Id);
-      throw new InvalidOperationException($"Key Vault emulator never became reachable.\n{diagnostics}", ex);
+      await RunDockerCommandAsync($"restart {_keyVault.Id}");
+      keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
+      try
+      {
+        await WaitUntilSucceedsAsync(SeedFirstSecretAsync, timeoutSeconds: 150);
+      }
+      catch (InvalidOperationException ex)
+      {
+        var diagnostics = await CaptureDockerDiagnosticsAsync(_keyVault.Id);
+        throw new InvalidOperationException(
+            $"Key Vault emulator never became reachable (client target: {keyVaultSecretClient.VaultUri}).\n{diagnostics}", ex);
+      }
     }
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BlobStorage",
         "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;");
@@ -419,7 +432,16 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
       var stderr = await logs.StandardError.ReadToEndAsync();
       await logs.WaitForExitAsync();
 
-      return $"Container state: {stateText}\nContainer logs:\n{stdout}\n{stderr}";
+      using var ports = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", $"port {containerId}")
+      {
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+      })!;
+      var portsText = (await ports.StandardOutput.ReadToEndAsync()).Trim();
+      await ports.WaitForExitAsync();
+
+      return $"Container state: {stateText}\nPublished ports:\n{portsText}\nContainer logs:\n{stdout}\n{stderr}";
     }
     catch (Exception ex)
     {
