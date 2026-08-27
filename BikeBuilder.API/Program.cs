@@ -5,6 +5,7 @@ using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using BikeBuilder.API.Endpoints;
 using BikeBuilder.API.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,16 +58,32 @@ builder.Services.AddCors(options =>
             .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding"));
 });
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+      options.Authority = builder.Configuration["Auth0:Authority"]
+          ?? throw new InvalidOperationException("Auth0:Authority is not configured.");
+      options.Audience = builder.Configuration["Auth0:Audience"];
+      // False only in the integration-test environment, where the stub OIDC issuer is plain http.
+      options.RequireHttpsMetadata = builder.Configuration.GetValue("Auth0:RequireHttpsMetadata", true);
+      options.TokenValidationParameters.NameClaimType = "sub";
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 await app.Services.GetRequiredService<BlobContainerClient>().CreateIfNotExistsAsync();
 
 app.UseCors("BlazorWasmClient");
+// gRPC-Web unwrapping must happen before authentication reads the request.
 app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+app.UseAuthentication();
+app.UseAuthorization();
 
-app.MapGrpcService<ComponentGrpcService>();
-app.MapGrpcService<BikeBuildGrpcService>();
+app.MapGrpcService<ComponentGrpcService>().RequireAuthorization();
+app.MapGrpcService<BikeBuildGrpcService>().RequireAuthorization();
 app.MapComponentImageEndpoints();
+// Stays anonymous - the integration-test fixture uses it as the container health probe.
 app.MapGet("/", () => "BikeBuilder.API gRPC endpoints — use a gRPC-Web client.");
 
 app.Run();

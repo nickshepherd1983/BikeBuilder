@@ -17,6 +17,10 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   public const int ApiHostPort = 18100;
   public const int WebHostPort = 18200;
   public const int WebPublicHostPort = 18300;
+  public const int OidcHostPort = 18400;
+
+  public const string OidcTestUsername = "testuser";
+  public const string OidcTestPassword = "password";
 
   // 127.0.0.1 rather than "localhost" - on this Windows/Docker Desktop setup, the .NET
   // HttpClient used for the readiness check below and the Chromium browser Playwright
@@ -35,12 +39,22 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   private const string KeyVaultNetworkAlias = "keyvault-emulator";
   private static readonly string KeyVaultVaultUri = $"https://{KeyVaultNetworkAlias}:{KeyVaultContainerPort}";
 
+  // The issuer the browser uses must equal the token's iss claim. IdentityServer pins the
+  // issuer via IssuerUri but generates the discovery document's *endpoint* URLs from each
+  // request's host, so the browser (via the host port binding) and the API (via the
+  // "oidc-mock" network alias) can both reach the stub while agreeing on this one issuer.
+  private static readonly string OidcIssuerUri = $"http://127.0.0.1:{OidcHostPort}";
+  private const string OidcNetworkAlias = "oidc-mock";
+  private const string OidcAudience = "bikebuilder-api";
+  private const string OidcClientId = "bikebuilder-web";
+
   private INetwork _network = null!;
   private MsSqlContainer _sql = null!;
   private AzuriteContainer _azurite = null!;
   private IContainer _serviceBusSql = null!;
   private IContainer _serviceBus = null!;
   private AzureKeyVaultEmulatorContainer _keyVault = null!;
+  private IContainer _oidcMock = null!;
   private IFutureDockerImage _apiImage = null!;
   private IFutureDockerImage _webImage = null!;
   private IFutureDockerImage _webPublicImage = null!;
@@ -111,7 +125,53 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     _keyVault = new AzureKeyVaultEmulatorContainer();
 
-    await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync());
+    // Stub OIDC issuer standing in for Auth0. 0.8.6 (Duende IdentityServer 6.3 on .NET 6)
+    // predates the image's .NET 8 rebase, so the container listens on port 80; its quickstart
+    // login form uses "Input.Username"/"Input.Password" - see NavigationHelper's login handling.
+    _oidcMock = new ContainerBuilder("ghcr.io/soluto/oidc-server-mock:0.8.6")
+        .WithNetwork(_network)
+        .WithNetworkAliases(OidcNetworkAlias)
+        .WithPortBinding(OidcHostPort, 80)
+        .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+        // CookieSameSiteMode=Lax: the default of SameSite=None requires Secure, and Chromium
+        // silently drops such cookies over plain http - the login POST would succeed but the
+        // browser would return to /connect/authorize with no session, looping back to the
+        // login form forever.
+        .WithEnvironment("SERVER_OPTIONS_INLINE",
+            $$$"""{"IssuerUri":"{{{OidcIssuerUri}}}","AccessTokenJwtType":"JWT","Authentication":{"CookieSameSiteMode":"Lax"}}""")
+        .WithEnvironment("API_SCOPES_INLINE",
+            $$"""[{"Name":"{{OidcAudience}}"}]""")
+        .WithEnvironment("API_RESOURCES_INLINE",
+            $$"""[{"Name":"{{OidcAudience}}","Scopes":["{{OidcAudience}}"]}]""")
+        .WithEnvironment("CLIENTS_CONFIGURATION_INLINE",
+            $$"""
+            [{
+              "ClientId": "{{OidcClientId}}",
+              "AllowedGrantTypes": ["authorization_code"],
+              "RequirePkce": true,
+              "RequireClientSecret": false,
+              "RedirectUris": ["{{WebBaseAddress}}/authentication/login-callback"],
+              "PostLogoutRedirectUris": ["{{WebBaseAddress}}/authentication/logout-callback"],
+              "AllowedCorsOrigins": ["{{WebBaseAddress}}"],
+              "AllowedScopes": ["openid", "profile", "{{OidcAudience}}"],
+              "AccessTokenType": "Jwt",
+              "AllowAccessTokensViaBrowser": true
+            }]
+            """)
+        .WithEnvironment("USERS_CONFIGURATION_INLINE",
+            $$"""
+            [{
+              "SubjectId": "test-user",
+              "Username": "{{OidcTestUsername}}",
+              "Password": "{{OidcTestPassword}}",
+              "Claims": [{"Type": "name", "Value": "Test User", "ValueType": "string"}]
+            }]
+            """)
+        .WithWaitStrategy(Wait.ForUnixContainer()
+            .UntilHttpRequestIsSucceeded(r => r.ForPort(80).ForPath("/.well-known/openid-configuration")))
+        .Build();
+
+    await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync(), _oidcMock.StartAsync());
     await _serviceBus.StartAsync();
 
     // AzureKeyVaultEmulatorContainer doesn't expose Testcontainers' network-attachment API
@@ -149,6 +209,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.Web")
         .WithDockerfile("Dockerfile")
         .WithBuildArgument("API_BASE_ADDRESS", ApiBaseAddress)
+        .WithBuildArgument("AUTH0_AUTHORITY", OidcIssuerUri)
+        .WithBuildArgument("AUTH0_CLIENT_ID", OidcClientId)
+        .WithBuildArgument("AUTH0_AUDIENCE", OidcAudience)
+        // The stub mints the aud claim from requested API scopes, not Auth0's audience param.
+        .WithBuildArgument("AUTH0_EXTRA_SCOPES", OidcAudience)
         .WithName("bikebuilder-web:test")
         .Build();
 
@@ -169,6 +234,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithPortBinding(ApiHostPort, 8080)
         .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
         .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
+        // The API fetches discovery/JWKS in-network via the alias; the discovery document
+        // still reports OidcIssuerUri as issuer, which is what token iss claims carry.
+        .WithEnvironment("Auth0__Authority", $"http://{OidcNetworkAlias}")
+        .WithEnvironment("Auth0__Audience", OidcAudience)
+        .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
         .Build();
     await _api.StartAsync();
@@ -201,6 +271,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     await WaitUntilReachableAsync(ApiBaseAddress);
     await WaitUntilReachableAsync(WebBaseAddress);
     await WaitUntilReachableAsync(WebPublicBaseAddress);
+    await WaitUntilReachableAsync(OidcIssuerUri);
 
     _playwright = await Playwright.CreateAsync();
     // Set HEADED=1 to watch the browser while the test runs (e.g. `$env:HEADED=1` in
@@ -313,6 +384,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     if (_keyVault is not null)
     {
       await _keyVault.DisposeAsync();
+    }
+
+    if (_oidcMock is not null)
+    {
+      await _oidcMock.DisposeAsync();
     }
 
     if (_sql is not null)
