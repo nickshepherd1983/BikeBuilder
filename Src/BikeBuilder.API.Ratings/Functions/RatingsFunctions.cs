@@ -87,35 +87,35 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
     return new OkObjectResult(ratings);
   }
 
-  [Function("GetRatingCounts")]
-  public async Task<IActionResult> GetRatingCountsAsync(
-      [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bikebuilds/ratings/counts")] HttpRequest req,
+  [Function("GetRatingSummaries")]
+  public async Task<IActionResult> GetRatingSummariesAsync(
+      [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bikebuilds/ratings/summaries")] HttpRequest req,
       FunctionContext context)
   {
     var ids = req.Query["ids"].ToString()
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     if (ids.Length == 0)
-      return new OkObjectResult(Array.Empty<RatingCountDto>());
+      return new OkObjectResult(Array.Empty<RatingSummaryDto>());
 
-    // Cross-partition on purpose: counts span many bikeBuildId partitions. Counting in
+    // Cross-partition on purpose: summaries span many bikeBuildId partitions. Aggregating in
     // memory instead of GROUP BY keeps the query within what the Cosmos emulator supports.
     var query = new QueryDefinition(
-            "SELECT VALUE c.bikeBuildId FROM c WHERE ARRAY_CONTAINS(@ids, c.bikeBuildId)")
+            "SELECT c.bikeBuildId, c.stars FROM c WHERE ARRAY_CONTAINS(@ids, c.bikeBuildId)")
         .WithParameter("@ids", ids);
 
-    var ratedBuildIds = new List<string>();
-    using var iterator = container.GetItemQueryIterator<string>(query);
+    var ratings = new List<RatingStarsItem>();
+    using var iterator = container.GetItemQueryIterator<RatingStarsItem>(query);
     while (iterator.HasMoreResults)
     {
-      ratedBuildIds.AddRange(await iterator.ReadNextAsync(context.CancellationToken));
+      ratings.AddRange(await iterator.ReadNextAsync(context.CancellationToken));
     }
 
-    var counts = ratedBuildIds
-        .GroupBy(id => id)
-        .Select(group => new RatingCountDto(group.Key, group.Count()))
+    var summaries = ratings
+        .GroupBy(rating => rating.BikeBuildId)
+        .Select(group => new RatingSummaryDto(group.Key, group.Count(), group.Average(rating => (double)rating.Stars)))
         .ToList();
 
-    return new OkObjectResult(counts);
+    return new OkObjectResult(summaries);
   }
 }

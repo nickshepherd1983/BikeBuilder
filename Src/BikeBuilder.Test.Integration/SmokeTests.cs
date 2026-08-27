@@ -76,9 +76,11 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     await editPage.WaitForRatingAsync("Even better downhill", "Test User");
     await notifications.WaitForNotificationAsync($"New 5-star rating for {buildName}");
 
-    // Back on the grid, the Ratings column should show both ratings. Expect polls, so the
-    // async count fetch after the grid renders can't race this assertion.
+    // Back on the grid, the Ratings column should show both ratings and the Average column
+    // their mean (4 and 5 stars). Expect polls, so the async summary fetch after the grid
+    // renders can't race these assertions.
     await bikeBuilds.GotoAsync();
     await Expect(bikeBuilds.RatingsCountCell(buildName)).ToHaveTextAsync("2");
+    await Expect(bikeBuilds.AverageRatingCell(buildName)).ToHaveTextAsync("4.5");
   }
 }

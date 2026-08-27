@@ -8,7 +8,7 @@ public partial class BikeBuilds(
     NavigationManager _navigation)
 {
   List<BikeBuildMessage>? _bikeBuilds;
-  Dictionary<int, int>? _ratingCounts;
+  Dictionary<int, RatingSummaryDto>? _ratingSummaries;
 
   protected override async Task OnInitializedAsync()
   {
@@ -19,21 +19,31 @@ public partial class BikeBuilds(
   {
     var response = await _bikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest());
     _bikeBuilds = [.. response.BikeBuilds];
-    await LoadRatingCounts();
+    await LoadRatingSummaries();
   }
 
-  async Task LoadRatingCounts()
+  async Task LoadRatingSummaries()
   {
     try
     {
-      _ratingCounts = await _ratingsClient.GetCountsAsync(_bikeBuilds!.Select(b => b.Id));
+      _ratingSummaries = await _ratingsClient.GetSummariesAsync(_bikeBuilds!.Select(b => b.Id));
     }
     catch (HttpRequestException)
     {
-      // Ratings service unavailable - the grid still renders, counts just stay blank.
-      _ratingCounts = null;
+      // Ratings service unavailable - the grid still renders, ratings cells just stay blank.
+      _ratingSummaries = null;
     }
   }
+
+  string? RatingCountFor(int bikeBuildId) =>
+      _ratingSummaries is null
+          ? null
+          : (_ratingSummaries.TryGetValue(bikeBuildId, out var summary) ? summary.Count : 0).ToString();
+
+  string? AverageRatingFor(int bikeBuildId) =>
+      _ratingSummaries is not null && _ratingSummaries.TryGetValue(bikeBuildId, out var summary)
+          ? summary.AverageStars.ToString("0.0", CultureInfo.InvariantCulture)
+          : null;
 
   void EditBikeBuild(int id) => _navigation.NavigateTo($"/bikebuilds/{id}/edit");
 

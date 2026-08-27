@@ -17,6 +17,7 @@
         <MudTh>Description</MudTh>
         <MudTh>Total</MudTh>
         <MudTh>Ratings</MudTh>
+        <MudTh>Average</MudTh>
         <MudTh Style="width: 1%;"></MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -24,7 +25,8 @@
         <MudTd DataLabel="Date">@context.Date.ToDateTimeOffset().ToString("d")</MudTd>
         <MudTd DataLabel="Description">@context.Description</MudTd>
         <MudTd DataLabel="Total">@FormatCost(context.Total)</MudTd>
-        <MudTd DataLabel="Ratings">@(_ratingCounts?.GetValueOrDefault(context.Id))</MudTd>
+        <MudTd DataLabel="Ratings">@RatingCountFor(context.Id)</MudTd>
+        <MudTd DataLabel="Average">@AverageRatingFor(context.Id)</MudTd>
         <MudTd DataLabel="">
             <MudStack Row="true" Spacing="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => EditBikeBuild(context.Id)" />

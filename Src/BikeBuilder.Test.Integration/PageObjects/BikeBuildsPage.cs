@@ -8,8 +8,10 @@ public class BikeBuildsPage(IPage page, string baseUrl)
   ILocator RowByName(string buildName) =>
       page.Locator("table tbody tr").Filter(new() { HasText = buildName });
 
-  // Columns: Name | Date | Description | Total | Ratings | actions.
+  // Columns: Name | Date | Description | Total | Ratings | Average | actions.
   public ILocator RatingsCountCell(string buildName) => RowByName(buildName).Locator("td:nth-child(5)");
+
+  public ILocator AverageRatingCell(string buildName) => RowByName(buildName).Locator("td:nth-child(6)");
 
   public async Task<BikeBuildEditPage> CreateBikeBuildAsync(string name, string description)
   {
