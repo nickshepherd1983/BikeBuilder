@@ -37,6 +37,15 @@ services:
     volumes:
       - ./servicebus-emulator/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
 
+  keyvault-emulator:
+    image: jamesgoulddev/azure-keyvault-emulator:latest
+    ports:
+      - "4997:4997"
+    volumes:
+      - ./keyvault-emulator/certs:/certs
+    environment:
+      Persist: "true"
+
 volumes:
   sql-data:
   azurite-data:

@@ -22,3 +22,6 @@ Thumbs.db
 
 # Claude Code local state
 .claude/
+
+# Locally generated Key Vault Emulator TLS certs (host-specific, never commit)
+keyvault-emulator/certs/
