@@ -153,7 +153,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithEnvironment("ACCEPT_EULA", "Y")
         .WithEnvironment("SQL_SERVER", "servicebus-sql")
         .WithEnvironment("MSSQL_SA_PASSWORD", ServiceBusSqlPassword)
-        .WithBindMount(Path.Combine(solutionDir, "servicebus-emulator", "Config.json"), "/ServiceBus_Emulator/ConfigFiles/Config.json")
+        .WithBindMount(Path.Combine(solutionDir, "Tools", "servicebus-emulator", "Config.json"), "/ServiceBus_Emulator/ConfigFiles/Config.json")
         .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("Emulator Service is Successfully Up!"))
         .Build();
 
@@ -253,14 +253,14 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     _apiImage = new ImageFromDockerfileBuilder()
         .WithContextDirectory(solutionDir)
-        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.API")
+        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "Src/BikeBuilder.API")
         .WithDockerfile("Dockerfile")
         .WithName("bikebuilder-api:test")
         .Build();
 
     _webImage = new ImageFromDockerfileBuilder()
         .WithContextDirectory(solutionDir)
-        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.Web")
+        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "Src/BikeBuilder.Web")
         .WithDockerfile("Dockerfile")
         .WithBuildArgument("API_BASE_ADDRESS", ApiBaseAddress)
         .WithBuildArgument("AUTH0_AUTHORITY", OidcIssuerUri)
@@ -274,14 +274,14 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     _webPublicImage = new ImageFromDockerfileBuilder()
         .WithContextDirectory(solutionDir)
-        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.Web.Public")
+        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "Src/BikeBuilder.Web.Public")
         .WithDockerfile("Dockerfile")
         .WithName("bikebuilder-web-public:test")
         .Build();
 
     _ratingsImage = new ImageFromDockerfileBuilder()
         .WithContextDirectory(solutionDir)
-        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.API.Ratings")
+        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "Src/BikeBuilder.API.Ratings")
         .WithDockerfile("Dockerfile")
         .WithName("bikebuilder-ratings:test")
         .Build();

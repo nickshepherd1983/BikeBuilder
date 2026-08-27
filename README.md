@@ -35,7 +35,7 @@ run fully offline.
 ## Tests
 
 ```powershell
-dotnet test BikeBuilder.Test.Integration
+dotnet test Src/BikeBuilder.Test.Integration
 ```
 
 One end-to-end test covers the whole journey: log in, create a component, upload an image,

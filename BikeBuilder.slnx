@@ -2,10 +2,19 @@
   <Folder Name="/SolutionItems/">
     <File Path=".editorconfig" />
   </Folder>
-  <Project Path="BikeBuilder.API/BikeBuilder.API.csproj" />
-  <Project Path="BikeBuilder.API.Ratings/BikeBuilder.API.Ratings.csproj" />
-  <Project Path="BikeBuilder.Contracts/BikeBuilder.Contracts.csproj" />
-  <Project Path="BikeBuilder.Test.Integration/BikeBuilder.Test.Integration.csproj" />
-  <Project Path="BikeBuilder.Web.Public/BikeBuilder.Web.Public.csproj" />
-  <Project Path="BikeBuilder.Web/BikeBuilder.Web.csproj" />
+  <Folder Name="/Src/">
+    <Project Path="Src/BikeBuilder.API/BikeBuilder.API.csproj" />
+    <Project Path="Src/BikeBuilder.API.Ratings/BikeBuilder.API.Ratings.csproj" />
+    <Project Path="Src/BikeBuilder.Contracts/BikeBuilder.Contracts.csproj" />
+    <Project Path="Src/BikeBuilder.Test.Integration/BikeBuilder.Test.Integration.csproj" />
+    <Project Path="Src/BikeBuilder.Web.Public/BikeBuilder.Web.Public.csproj" />
+    <Project Path="Src/BikeBuilder.Web/BikeBuilder.Web.csproj" />
+  </Folder>
+  <Folder Name="/Tools/" />
+  <Folder Name="/Tools/keyvault-emulator/">
+    <File Path="Tools/keyvault-emulator/README.md" />
+  </Folder>
+  <Folder Name="/Tools/servicebus-emulator/">
+    <File Path="Tools/servicebus-emulator/Config.json" />
+  </Folder>
 </Solution>

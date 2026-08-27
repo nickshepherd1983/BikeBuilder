@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY BikeBuilder.API/BikeBuilder.API.csproj BikeBuilder.API/
-COPY BikeBuilder.Web/BikeBuilder.Web.csproj BikeBuilder.Web/
-RUN dotnet restore BikeBuilder.Web/BikeBuilder.Web.csproj
-COPY BikeBuilder.API/ BikeBuilder.API/
-COPY BikeBuilder.Web/ BikeBuilder.Web/
-RUN dotnet publish BikeBuilder.Web/BikeBuilder.Web.csproj -c Release -o /app --no-restore
+COPY Src/BikeBuilder.API/BikeBuilder.API.csproj Src/BikeBuilder.API/
+COPY Src/BikeBuilder.Web/BikeBuilder.Web.csproj Src/BikeBuilder.Web/
+RUN dotnet restore Src/BikeBuilder.Web/BikeBuilder.Web.csproj
+COPY Src/BikeBuilder.API/ Src/BikeBuilder.API/
+COPY Src/BikeBuilder.Web/ Src/BikeBuilder.Web/
+RUN dotnet publish Src/BikeBuilder.Web/BikeBuilder.Web.csproj -c Release -o /app --no-restore
 ARG API_BASE_ADDRESS=http://127.0.0.1:18100
 ARG RATINGS_API_BASE_ADDRESS=http://127.0.0.1:18500
 ARG AUTH0_AUTHORITY=https://YOUR_TENANT.auth0.com
@@ -14,7 +14,7 @@ ARG AUTH0_AUDIENCE=https://bikebuilder-api
 ARG AUTH0_EXTRA_SCOPES=
 # Blazor WASM bakes the list of wwwroot/appsettings*.json files to fetch at startup directly into
 # the published dotnet.*.js bundle at publish time - a file created only after `dotnet publish`
-# runs would never be requested at all, regardless of its content. BikeBuilder.Web/wwwroot ships
+# runs would never be requested at all, regardless of its content. Src/BikeBuilder.Web/wwwroot ships
 # both appsettings.json and appsettings.Development.json in source specifically so publish always
 # registers them; this step only overwrites their *content* (and drops the now-stale precompressed
 # .gz/.br siblings publish generated for the placeholder content, which nginx would otherwise keep
@@ -28,5 +28,5 @@ RUN printf '{"ApiBaseAddress":"%s","RatingsApiBaseAddress":"%s","Auth0":{"Author
 
 FROM nginx:alpine AS final
 COPY --from=build /app/wwwroot /usr/share/nginx/html
-COPY BikeBuilder.Web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY Src/BikeBuilder.Web/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

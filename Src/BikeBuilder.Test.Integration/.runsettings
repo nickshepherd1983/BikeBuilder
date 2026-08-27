@@ -4,7 +4,7 @@
     <EnvironmentVariables>
       <!-- Makes BikeBuilderAppFixture launch Chromium headed (visible) instead of headless
            when tests run from Visual Studio's Test Explorer. CLI runs (dotnet test) are
-           unaffected unless you pass --settings BikeBuilder.Test.Integration/.runsettings. -->
+           unaffected unless you pass --settings Src/BikeBuilder.Test.Integration/.runsettings. -->
       <HEADED>1</HEADED>
     </EnvironmentVariables>
   </RunConfiguration>

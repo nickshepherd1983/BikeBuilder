@@ -35,7 +35,7 @@ services:
       - "5672:5672"
       - "5300:5300"
     volumes:
-      - ./servicebus-emulator/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
+      - ./Tools/servicebus-emulator/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
 
   cosmos:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
@@ -54,7 +54,7 @@ services:
     ports:
       - "4997:4997"
     volumes:
-      - ./keyvault-emulator/certs:/certs
+      - ./Tools/keyvault-emulator/certs:/certs
     environment:
       Persist: "true"
 

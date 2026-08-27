@@ -15,9 +15,9 @@ entirely for the Key Vault connection, since it only ever targets this local emu
 one with PowerShell (no WSL/OpenSSL needed):
 
 ```powershell
-New-Item -ItemType Directory -Force -Path keyvault-emulator\certs | Out-Null
+New-Item -ItemType Directory -Force -Path Tools\keyvault-emulator\certs | Out-Null
 $cert = New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5) -KeyExportPolicy Exportable
-Export-PfxCertificate -Cert $cert -FilePath keyvault-emulator\certs\emulator.pfx -Password (ConvertTo-SecureString -String "emulator" -Force -AsPlainText) | Out-Null
+Export-PfxCertificate -Cert $cert -FilePath Tools\keyvault-emulator\certs\emulator.pfx -Password (ConvertTo-SecureString -String "emulator" -Force -AsPlainText) | Out-Null
 Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force
 ```
 
