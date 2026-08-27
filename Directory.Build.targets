@@ -1,0 +1,22 @@
+<Project>
+
+  <!-- When an app project is launched from Visual Studio, make sure the local emulator
+       containers (docker-compose.yml, this directory) are running first - the apps fetch
+       their secrets from the Key Vault emulator at startup and crash-loop without it.
+       Opt in per project with <EnsureDockerComposeUp>true</EnsureDockerComposeUp>
+       (paired with DisableFastUpToDateCheck, since VS skips MSBuild entirely for
+       up-to-date projects and this target would never run on a plain F5).
+       CLI/CI builds don't set BuildingInsideVisualStudio and are unaffected. -->
+  <Target Name="EnsureDockerComposeContainersRunning"
+          AfterTargets="Build"
+          Condition="'$(BuildingInsideVisualStudio)' == 'true' and '$(EnsureDockerComposeUp)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <Exec Command="docker compose up -d"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="WarnAndContinue"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
+    <Warning Condition="'$(MSBuildLastTaskResult)' == 'false'"
+             Text="Could not start the docker compose containers - is Docker Desktop running? The app will fail to reach the Key Vault emulator on localhost:4997." />
+  </Target>
+
+</Project>

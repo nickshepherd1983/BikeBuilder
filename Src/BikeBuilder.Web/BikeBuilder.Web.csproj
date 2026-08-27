@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- See Directory.Build.targets: start the emulator containers when launched from VS. -->
+    <EnsureDockerComposeUp>true</EnsureDockerComposeUp>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
     <!-- The browser fetch response-streaming mode .NET's WASM HttpClient uses by default is
          incompatible with gRPC-Web calls in some network setups (surfaces as a "Failed to fetch"
          TypeError / ERR_CONNECTION_REFUSED on otherwise-reachable endpoints) - buffer responses

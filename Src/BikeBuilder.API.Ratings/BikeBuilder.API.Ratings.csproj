@@ -6,6 +6,9 @@
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- See Directory.Build.targets: start the emulator containers when launched from VS. -->
+    <EnsureDockerComposeUp>true</EnsureDockerComposeUp>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
 
   <ItemGroup>
