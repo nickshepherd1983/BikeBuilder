@@ -1,4 +1,5 @@
-﻿using Azure.Security.KeyVault.Secrets;
+﻿using System.Diagnostics;
+using Azure.Security.KeyVault.Secrets;
 using AzureKeyVaultEmulator.TestContainers;
 using AzureKeyVaultEmulator.TestContainers.Helpers;
 using BikeBuilder.API.Data;
@@ -356,8 +357,9 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     _playwright = await Playwright.CreateAsync();
     // Set HEADED=1 to watch the browser while the test runs (e.g. `$env:HEADED=1` in
-    // PowerShell before `dotnet test`); defaults to headless otherwise.
-    var headed = Environment.GetEnvironmentVariable("HEADED") == "1";
+    // PowerShell before `dotnet test`, or via .runsettings). Debugging the test (Visual
+    // Studio Test Explorer "Debug") attaches a debugger, so that runs headed too.
+    var headed = Environment.GetEnvironmentVariable("HEADED") == "1" || Debugger.IsAttached;
     Browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
     {
       Headless = !headed,

@@ -39,8 +39,12 @@ public class BikeBuildEditPage(IPage page)
 
   public async Task WaitForRatingAsync(string comment, string userName)
   {
-    await Expect(RatingsSection.GetByText(comment)).ToBeVisibleAsync(new() { Timeout = 8000 });
-    await Expect(RatingsSection.GetByText(userName)).ToBeVisibleAsync(new() { Timeout = 8000 });
+    // Multiple ratings by the same user can be on screen at once, so a bare
+    // GetByText(userName) is a strict-mode violation from the second rating on. Anchor on
+    // this rating's unique comment and check the author caption inside that entry's div.
+    var entry = RatingsSection.GetByText(comment).Locator("..");
+    await Expect(entry).ToBeVisibleAsync(new() { Timeout = 8000 });
+    await Expect(entry.GetByText(userName)).ToBeVisibleAsync(new() { Timeout = 8000 });
   }
 
   ILocator RatingsSection => page.Locator(".mud-paper", new() { HasText = "Leave a rating" });

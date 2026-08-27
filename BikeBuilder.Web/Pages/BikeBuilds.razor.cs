@@ -16,7 +16,7 @@ public partial class BikeBuilds(
   async Task LoadBikeBuilds()
   {
     var response = await _bikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest());
-    _bikeBuilds = response.BikeBuilds.ToList();
+    _bikeBuilds = [.. response.BikeBuilds];
   }
 
   void EditBikeBuild(int id) => _navigation.NavigateTo($"/bikebuilds/{id}/edit");
