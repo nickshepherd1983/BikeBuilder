@@ -22,6 +22,30 @@ h1:focus {
     letter-spacing: .08em;
 }
 
+/* Footer bar spans the full viewport width, above the nav drawer. The extra
+   .mud-layout ancestor out-specifies MudBlazor's own `left: auto` on
+   .mud-appbar-fixed-bottom, which otherwise shrinks the bar to its content -
+   necessary because this stylesheet loads before MudBlazor.min.css. */
+.mud-layout .mud-appbar.app-footer {
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1301;
+}
+
+/* Snackbar toasts in site colors: navy panel, white text, red icons/actions.
+   !important because MudBlazor's severity variants (mud-alert-filled-*) set
+   their own backgrounds with higher specificity. */
+.mud-snackbar {
+    background-color: #00263A !important;
+    color: #fff !important;
+}
+
+    .mud-snackbar .mud-icon-root,
+    .mud-snackbar .mud-button-label {
+        color: #CF0030 !important;
+    }
+
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
@@ -64,23 +88,42 @@ h1:focus {
 
     .loading-progress circle {
         fill: none;
-        stroke: #e0e0e0;
+        stroke: #e4e9ec;
         stroke-width: 0.6rem;
         transform-origin: 50% 50%;
         transform: rotate(-90deg);
     }
 
         .loading-progress circle:last-child {
-            stroke: #594ae2;
+            stroke: #CF0030;
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
+
+/* Bike riding inside the loading ring */
+.loading-bike {
+    position: absolute;
+    width: 3.5rem;
+    height: 3.5rem;
+    inset: calc(20vh + 2.25rem) 0 auto 0;
+    margin: 0 auto;
+    animation: loading-bike-bob 1s ease-in-out infinite;
+}
+
+@keyframes loading-bike-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-0.25rem); }
+}
 
 .loading-progress-text {
     position: absolute;
     text-align: center;
     font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    color: #00263A;
+    font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    inset: calc(20vh + 8.75rem) 0 auto 0.2rem;
 }
 
     .loading-progress-text:after {

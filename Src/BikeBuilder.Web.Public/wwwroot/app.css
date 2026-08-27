@@ -9,6 +9,28 @@ h1:focus {
     letter-spacing: .04em;
 }
 
+/* Snackbar toasts in site colors: navy panel, white text, red icons/actions.
+   !important because MudBlazor's severity variants (mud-alert-filled-*) set
+   their own backgrounds with higher specificity. */
+.mud-snackbar {
+    background-color: #00263A !important;
+    color: #fff !important;
+}
+
+    .mud-snackbar .mud-icon-root,
+    .mud-snackbar .mud-button-label {
+        color: #CF0030 !important;
+    }
+
+/* Footer bar spans the full viewport width (MudBlazor's .mud-appbar-fixed-bottom
+   sets `left: auto`, shrinking the bar to its content) */
+.mud-layout .mud-appbar.app-footer {
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1301;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }

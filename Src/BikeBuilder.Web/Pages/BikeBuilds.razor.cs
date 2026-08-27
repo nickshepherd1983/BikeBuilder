@@ -7,6 +7,9 @@ public partial class BikeBuilds(
     ISnackbar _snackbar,
     NavigationManager _navigation)
 {
+  // Same width treatment as the Components page's component dialog.
+  static readonly DialogOptions BikeBuildDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
   MudTable<BikeBuildMessage>? _table;
   Dictionary<int, RatingSummaryDto>? _ratingSummaries;
 
@@ -61,7 +64,7 @@ public partial class BikeBuilds(
       { x => x.Title, "Create Bike Build" }
     };
 
-    var dialog = await _dialogService.ShowAsync<BikeBuildDialog>("Create Bike Build", parameters);
+    var dialog = await _dialogService.ShowAsync<BikeBuildDialog>("Create Bike Build", parameters, BikeBuildDialogOptions);
     var result = await dialog.Result;
 
     if (result is null || result.Canceled)
