@@ -8,7 +8,7 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
   [Fact]
   public async Task Can_create_components_upload_images_and_build_a_bike()
   {
-    var page = await fixture.Browser.NewPageAsync();
+    var page = await fixture.CreatePageAsync();
     var consoleMessages = new List<string>();
     page.Console += (_, msg) => consoleMessages.Add($"[{msg.Type}] {msg.Text}");
     page.PageError += (_, error) => consoleMessages.Add($"[pageerror] {error}");
@@ -28,7 +28,7 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     }
     finally
     {
-      await page.CloseAsync();
+      await BikeBuilderAppFixture.SaveVideoAsync(page, "create-components-and-build");
     }
   }
 
@@ -65,8 +65,8 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
   [Fact]
   public async Task Can_create_components_build_a_bike_and_receive_a_live_notification()
   {
-    var page = await fixture.Browser.NewPageAsync();
-    var notificationPage = await fixture.Browser.NewPageAsync();
+    var page = await fixture.CreatePageAsync();
+    var notificationPage = await fixture.CreatePageAsync();
     var consoleMessages = new List<string>();
     page.Console += (_, msg) => consoleMessages.Add($"[{msg.Type}] {msg.Text}");
     page.PageError += (_, error) => consoleMessages.Add($"[pageerror] {error}");
@@ -86,8 +86,8 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     }
     finally
     {
-      await page.CloseAsync();
-      await notificationPage.CloseAsync();
+      await BikeBuilderAppFixture.SaveVideoAsync(page, "notification-app");
+      await BikeBuilderAppFixture.SaveVideoAsync(notificationPage, "notification-toasts");
     }
   }
 

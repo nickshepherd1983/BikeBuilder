@@ -31,6 +31,34 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   public string WebPublicBaseAddress => $"http://127.0.0.1:{WebPublicHostPort}";
   public IBrowser Browser { get; private set; } = null!;
 
+  public static readonly string VideosDir = Path.Combine(AppContext.BaseDirectory, "TestResults", "videos");
+
+  /// <summary>
+  /// Creates a page in a context that records video to TestResults/videos. Playwright only
+  /// finalizes the video when the context closes, so callers must dispose the page via
+  /// <see cref="SaveVideoAsync"/> (which closes the context) rather than page.CloseAsync().
+  /// </summary>
+  public async Task<IPage> CreatePageAsync()
+  {
+    var context = await Browser.NewContextAsync(new()
+    {
+      RecordVideoDir = VideosDir,
+      RecordVideoSize = new() { Width = 1280, Height = 720 }
+    });
+    return await context.NewPageAsync();
+  }
+
+  /// <summary>Closes the page's context (finalizing the recording) and renames the video.</summary>
+  public static async Task SaveVideoAsync(IPage page, string name)
+  {
+    await page.Context.CloseAsync();
+    if (page.Video is not null)
+    {
+      await page.Video.SaveAsAsync(Path.Combine(VideosDir, $"{name}.webm"));
+      await page.Video.DeleteAsync();
+    }
+  }
+
   private const string ServiceBusSqlPassword = "BikeBuilder!Bus2026";
   private const string ServiceBusConnectionString =
       "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
