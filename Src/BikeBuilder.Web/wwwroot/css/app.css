@@ -10,6 +10,18 @@ h1:focus {
     padding-top: 1.1rem;
 }
 
+/* JensonUSA-style header: heavy uppercase wordmark, uppercase tracked nav links */
+.mud-appbar .mud-typography-h6 {
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: .04em;
+}
+
+.mud-nav-menu .mud-nav-link .mud-nav-link-text {
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;

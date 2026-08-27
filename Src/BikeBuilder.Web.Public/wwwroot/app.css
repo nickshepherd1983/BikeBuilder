@@ -2,6 +2,13 @@ h1:focus {
     outline: none;
 }
 
+/* JensonUSA-style header: heavy uppercase wordmark */
+.mud-appbar .mud-typography-h6 {
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: .04em;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
