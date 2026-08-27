@@ -232,8 +232,10 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // Seed the secrets the API/Web.Public containers will fetch for themselves at startup,
     // using the emulator's host-mapped port (this runs on the test host, not inside a container).
     var keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
-    await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
-        "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True");
+    // The emulator can report ready before its host-mapped port accepts connections (seen as
+    // connection-refused on GitHub Actions runners) - retry the first call until it's truly up.
+    await WaitUntilSucceedsAsync(async () => await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
+        "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True"));
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BlobStorage",
         "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;");
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--ServiceBus", ServiceBusConnectionString);
@@ -397,6 +399,29 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     {
       var error = await process.StandardError.ReadToEndAsync();
       throw new InvalidOperationException($"docker {arguments} failed: {error}");
+    }
+  }
+
+  // For host-side calls against a freshly published container port: the container's own
+  // readiness probe can pass before the host-mapped port-forwarding accepts connections,
+  // especially on slow CI runners.
+  static async Task WaitUntilSucceedsAsync(Func<Task> action, int timeoutSeconds = 90)
+  {
+    var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+    while (true)
+    {
+      try
+      {
+        await action();
+        return;
+      }
+      catch (Exception ex)
+      {
+        if (DateTime.UtcNow >= deadline)
+          throw new InvalidOperationException($"Action did not succeed within {timeoutSeconds}s.", ex);
+
+        await Task.Delay(TimeSpan.FromSeconds(2));
+      }
     }
   }
 
