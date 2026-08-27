@@ -4,6 +4,7 @@ using Azure.Core.Pipeline;
 using Azure.Security.KeyVault.Secrets;
 using AzureKeyVaultEmulator.TestContainers;
 using BikeBuilder.API.Data;
+using BikeBuilder.DataSeeder;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Images;
@@ -66,6 +67,9 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   const string ServiceBusSqlPassword = "BikeBuilder!Bus2026";
   const string ServiceBusConnectionString =
       "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
+
+  // Well-known Cosmos emulator account key (public, not a secret in the real sense).
+  const string CosmosAccountKey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
 
   const int KeyVaultContainerPort = 4997;
   const string KeyVaultNetworkAlias = "keyvault-emulator";
@@ -217,6 +221,8 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithEnvironment("PROTOCOL", "https")
         .WithEnvironment("ENABLE_EXPLORER", "false")
         .WithPortBinding(8080, true)
+        // The data-plane port, published so the fixture can seed ratings from the host.
+        .WithPortBinding(8081, true)
         .WithWaitStrategy(Wait.ForUnixContainer()
             .UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/ready")))
         .Build();
@@ -266,9 +272,8 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BlobStorage",
         "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;");
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--ServiceBus", ServiceBusConnectionString);
-    // Well-known Cosmos emulator account key (public, not a secret in the real sense).
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--Cosmos",
-        "AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
+        $"AccountEndpoint=https://cosmos-emulator:8081/;AccountKey={CosmosAccountKey}");
 
     var options = new DbContextOptionsBuilder<BikeBuilderDbContext>()
         .UseSqlServer(_sql.GetConnectionString())
@@ -276,6 +281,21 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     await using (var db = new BikeBuilderDbContext(options))
     {
       await db.Database.MigrateAsync();
+
+      // Seed the same realistic dataset local dev uses (1000+ components, 100 builds,
+      // 1-30 ratings each) so the tests exercise pagination, search, and summaries
+      // against real volumes rather than an empty database.
+      var cosmosConnectionString =
+          $"AccountEndpoint=https://127.0.0.1:{_cosmos.GetMappedPublicPort(8081)}/;AccountKey={CosmosAccountKey}";
+      using var cosmosClient = DatabaseSeeder.CreateEmulatorCosmosClient(cosmosConnectionString);
+
+      Microsoft.Azure.Cosmos.Container? ratingsContainer = null;
+      // The /ready probe passing doesn't guarantee the data plane accepts requests yet.
+      await WaitUntilSucceedsAsync(
+          async () => ratingsContainer = await DatabaseSeeder.EnsureRatingsContainerAsync(cosmosClient),
+          timeoutSeconds: 120);
+
+      await DatabaseSeeder.SeedAsync(db, ratingsContainer!, new Random(20260827));
     }
 
     _apiImage = new ImageFromDockerfileBuilder()

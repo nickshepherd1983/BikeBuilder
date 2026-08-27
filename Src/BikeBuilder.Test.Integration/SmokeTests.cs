@@ -38,7 +38,9 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     var bikeBuilds = new BikeBuildsPage(page, fixture.WebBaseAddress);
     var notifications = new NotificationHomePage(notificationPage, fixture.WebPublicBaseAddress);
 
-    const string frameName = "Carbon Frame";
+    // The fixture pre-seeds 1000+ components and the grid is paginated in name order, so
+    // the test component's name must sort ahead of every seeded brand to stay on page 1.
+    const string frameName = "AAA Carbon Frame";
     const string buildName = "Full Smoke Ride";
 
     // First navigation drives the stub OIDC login flow - this is the "log in" step.
