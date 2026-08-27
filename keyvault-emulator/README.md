@@ -9,35 +9,39 @@ Two one-time steps are needed before it works outside the Testcontainers integra
 
 ## 1. Generate the TLS certificate
 
-The emulator requires an HTTPS certificate mounted at `./keyvault-emulator/certs`. Generate and
-trust one using the project's own setup script (Windows: run under WSL):
+The emulator's own Dockerfile requires exactly one file: a PFX at `/certs/emulator.pfx` with
+password `emulator` (its CN doesn't matter — both apps' `Program.cs` bypass cert validation
+entirely for the Key Vault connection, since it only ever targets this local emulator). Generate
+one with PowerShell (no WSL/OpenSSL needed):
 
-```
-wsl -u root bash <(curl -fsSL https://raw.githubusercontent.com/james-gould/azure-keyvault-emulator/refs/heads/master/docs/setup.sh)
+```powershell
+New-Item -ItemType Directory -Force -Path keyvault-emulator\certs | Out-Null
+$cert = New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5) -KeyExportPolicy Exportable
+Export-PfxCertificate -Cert $cert -FilePath keyvault-emulator\certs\emulator.pfx -Password (ConvertTo-SecureString -String "emulator" -Force -AsPlainText) | Out-Null
+Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force
 ```
 
-Point it at `keyvault-emulator/certs` in this repo when prompted for an output directory. The
-generated PFX/CRT files are git-ignored — regenerate them on each new dev machine.
+The generated PFX is git-ignored — regenerate it on each new dev machine, then
+`docker compose up -d` (or `docker compose restart keyvault-emulator` if it's already running).
 
 ## 2. Seed the three secrets
 
-After `docker compose up -d` brings `keyvault-emulator` up, seed the secrets the apps expect
+Once the container is up (`docker logs bikebuilder-keyvault-emulator-1` should show "Now listening
+on: https://[::]:4997"), seed the secrets the apps expect
 (`ConnectionStrings--BikeBuilderDb`, `ConnectionStrings--BlobStorage`, `ConnectionStrings--ServiceBus`)
-once, e.g. from `dotnet fsi`/a scratch console app referencing `Azure.Security.KeyVault.Secrets`:
+once, directly against the emulator's REST API (no extra tooling needed) — from PowerShell:
 
-Reuse the `EmulatorTokenCredential` class from `BikeBuilder.API/Program.cs` (a minimal credential
-that fetches a bearer token from the emulator's own `/token` endpoint) - the emulator doesn't
-validate it against real Entra ID, so no real Azure login is needed:
-
-```csharp
-using Azure.Security.KeyVault.Secrets;
-
-var client = new SecretClient(new Uri("https://localhost:4997"), new EmulatorTokenCredential("https://localhost:4997"));
-await client.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
-    "Server=localhost,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Dev2026;TrustServerCertificate=True");
-await client.SetSecretAsync("ConnectionStrings--BlobStorage", "UseDevelopmentStorage=true");
-await client.SetSecretAsync("ConnectionStrings--ServiceBus",
-    "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;");
+```powershell
+$token = curl.exe -k -s https://localhost:4997/token
+$secrets = @{
+    "ConnectionStrings--BikeBuilderDb" = "Server=localhost,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Dev2026;TrustServerCertificate=True"
+    "ConnectionStrings--BlobStorage"   = "UseDevelopmentStorage=true"
+    "ConnectionStrings--ServiceBus"    = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+}
+foreach ($name in $secrets.Keys) {
+    $body = @{ value = $secrets[$name] } | ConvertTo-Json -Compress
+    curl.exe -k -s -X PUT "https://localhost:4997/secrets/$name`?api-version=7.4" -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d $body
+}
 ```
 
 With `Persist: true` set on the `keyvault-emulator` service, secrets survive container restarts,
