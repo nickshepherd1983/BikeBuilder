@@ -1,0 +1,101 @@
+﻿using System.Security.Claims;
+using System.Text.Json;
+using BikeBuilder.API.Ratings.Middleware;
+using BikeBuilder.API.Ratings.Models;
+using BikeBuilder.API.Ratings.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Functions.Worker;
+
+namespace BikeBuilder.API.Ratings.Functions;
+
+public class RatingsFunctions(Container container, IEventPublisher eventPublisher)
+{
+  private const int MaxCommentLength = 1000;
+
+  private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+
+  [Function("CreateRating")]
+  public async Task<IActionResult> CreateRatingAsync(
+      [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "bikebuilds/{bikeBuildId}/ratings")] HttpRequest req,
+      string bikeBuildId, FunctionContext context)
+  {
+    CreateRatingRequest? request;
+    try
+    {
+      request = await JsonSerializer.DeserializeAsync<CreateRatingRequest>(
+          req.Body, WebJson, context.CancellationToken);
+    }
+    catch (JsonException)
+    {
+      return new BadRequestObjectResult("Request body is not valid JSON.");
+    }
+
+    if (request?.Stars is not (>= 1 and <= 5))
+    {
+      return new BadRequestObjectResult("stars is required and must be between 1 and 5.");
+    }
+
+    if (request.Comment?.Length > MaxCommentLength)
+    {
+      return new BadRequestObjectResult($"comment must be at most {MaxCommentLength} characters.");
+    }
+
+    if (string.IsNullOrWhiteSpace(request.BikeBuildName))
+    {
+      return new BadRequestObjectResult("bikeBuildName is required.");
+    }
+
+    var user = (ClaimsPrincipal)context.Items[JwtAuthenticationMiddleware.UserContextKey]!;
+    var userId = user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+    // Real Auth0 access tokens usually carry only sub; an Auth0 Action adding a name claim
+    // upgrades the display name without any change here.
+    var userName = user.FindFirst("name")?.Value ?? user.FindFirst("nickname")?.Value ?? userId;
+
+    var document = new RatingDocument
+    {
+      Id = Guid.NewGuid().ToString(),
+      BikeBuildId = bikeBuildId,
+      Stars = request.Stars.Value,
+      Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment,
+      UserId = userId,
+      UserName = userName,
+      CreatedAt = DateTimeOffset.UtcNow
+    };
+
+    await container.CreateItemAsync(document, new PartitionKey(bikeBuildId), cancellationToken: context.CancellationToken);
+
+    await eventPublisher.PublishAsync(ServiceBusMessageTypes.RatingCreated, new RatingCreatedEvent
+    {
+      RatingId = document.Id,
+      BikeBuildId = document.BikeBuildId,
+      BikeBuildName = request.BikeBuildName,
+      Stars = document.Stars,
+      UserName = document.UserName,
+      CreatedAt = document.CreatedAt
+    }, context.CancellationToken);
+
+    return new CreatedResult($"/api/bikebuilds/{bikeBuildId}/ratings/{document.Id}", document);
+  }
+
+  [Function("ListRatings")]
+  public async Task<IActionResult> ListRatingsAsync(
+      [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bikebuilds/{bikeBuildId}/ratings")] HttpRequest req,
+      string bikeBuildId, FunctionContext context)
+  {
+    var query = new QueryDefinition(
+            "SELECT * FROM c WHERE c.bikeBuildId = @bikeBuildId ORDER BY c.createdAt DESC")
+        .WithParameter("@bikeBuildId", bikeBuildId);
+
+    var ratings = new List<RatingDocument>();
+    using var iterator = container.GetItemQueryIterator<RatingDocument>(query,
+        requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(bikeBuildId) });
+    while (iterator.HasMoreResults)
+    {
+      ratings.AddRange(await iterator.ReadNextAsync(context.CancellationToken));
+    }
+
+    return new OkObjectResult(ratings);
+  }
+}

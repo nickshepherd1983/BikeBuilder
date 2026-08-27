@@ -4,4 +4,5 @@ public static class ServiceBusMessageTypes
 {
   public const string ComponentCreated = "ComponentCreated";
   public const string BikeBuildCreated = "BikeBuildCreated";
+  public const string RatingCreated = "RatingCreated";
 }

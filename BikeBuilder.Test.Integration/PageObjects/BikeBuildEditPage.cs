@@ -1,4 +1,6 @@
-﻿namespace BikeBuilder.Test.Integration.PageObjects;
+﻿using static Microsoft.Playwright.Assertions;
+
+namespace BikeBuilder.Test.Integration.PageObjects;
 
 public class BikeBuildEditPage(IPage page)
 {
@@ -24,4 +26,24 @@ public class BikeBuildEditPage(IPage page)
 
   public async Task<IReadOnlyList<string>> GetAttachedComponentNamesAsync() =>
       await page.Locator("table tbody tr td:first-child").AllTextContentsAsync();
+
+  public async Task AddRatingAsync(int stars, string comment)
+  {
+    var section = RatingsSection;
+    // MudRating renders as a role="radiogroup" span (no class of its own); each star's
+    // accessible label sits on a hidden input behind the visible .mud-rating-item span,
+    // which intercepts pointer events - so click the span itself. .Last picks the editable
+    // picker, which sits below the read-only list ratings inside the same section.
+    await section.GetByRole(AriaRole.Radiogroup).Last.Locator(".mud-rating-item").Nth(stars - 1).ClickAsync();
+    await section.GetByLabel("Comment").FillAsync(comment);
+    await section.GetByRole(AriaRole.Button, new() { Name = "Submit rating" }).ClickAsync();
+  }
+
+  public async Task WaitForRatingAsync(string comment, string userName)
+  {
+    await Expect(RatingsSection.GetByText(comment)).ToBeVisibleAsync(new() { Timeout = 8000 });
+    await Expect(RatingsSection.GetByText(userName)).ToBeVisibleAsync(new() { Timeout = 8000 });
+  }
+
+  private ILocator RatingsSection => page.Locator(".mud-paper", new() { HasText = "Leave a rating" });
 }

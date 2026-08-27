@@ -33,6 +33,8 @@ public class ServiceBusListenerBackgroundService(
           $"New component added: {args.Message.Body.ToObjectFromJson<ComponentCreatedEvent>()!.Name}",
       ServiceBusMessageTypes.BikeBuildCreated =>
           $"New bike build created: {args.Message.Body.ToObjectFromJson<BikeBuildCreatedEvent>()!.Name}",
+      ServiceBusMessageTypes.RatingCreated =>
+          FormatRatingCreated(args.Message.Body.ToObjectFromJson<RatingCreatedEvent>()!),
       _ => null
     };
 
@@ -43,6 +45,9 @@ public class ServiceBusListenerBackgroundService(
 
     await args.CompleteMessageAsync(args.Message, args.CancellationToken);
   }
+
+  private static string FormatRatingCreated(RatingCreatedEvent rating) =>
+      $"New {rating.Stars}-star rating for {rating.BikeBuildName}";
 
   public override async Task StopAsync(CancellationToken cancellationToken)
   {

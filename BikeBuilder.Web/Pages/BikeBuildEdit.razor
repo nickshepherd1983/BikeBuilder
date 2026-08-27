@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject BikeBuildService.BikeBuildServiceClient BikeBuildClient
 @inject ComponentService.ComponentServiceClient ComponentClient
+@inject RatingsClient RatingsClient
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -68,6 +69,39 @@ else
             <MudText>No components added yet.</MudText>
         </NoRecordsContent>
     </MudTable>
+
+    <MudPaper Class="pa-4 mb-6 mt-6" Elevation="1">
+        <MudText Typo="Typo.h5" Class="mb-2">Ratings</MudText>
+        @if (ratings is null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (ratings.Count == 0)
+        {
+            <MudText>No ratings yet.</MudText>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                @foreach (var rating in ratings)
+                {
+                    <div>
+                        <MudRating SelectedValue="@rating.Stars" ReadOnly="true" />
+                        @if (!string.IsNullOrEmpty(rating.Comment))
+                        {
+                            <MudText Typo="Typo.body2">@rating.Comment</MudText>
+                        }
+                        <MudText Typo="Typo.caption">@rating.UserName — @rating.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                    </div>
+                }
+            </MudStack>
+        }
+
+        <MudText Typo="Typo.h6" Class="mt-4">Leave a rating</MudText>
+        <MudRating @bind-SelectedValue="newRatingStars" />
+        <MudTextField @bind-Value="newRatingComment" Label="Comment" Lines="3" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="SubmitRating">Submit rating</MudButton>
+    </MudPaper>
 }
 
 @code {
@@ -80,6 +114,10 @@ else
     private string name = string.Empty;
     private DateTime? date = DateTime.Today;
     private string description = string.Empty;
+
+    private List<RatingDto>? ratings;
+    private int newRatingStars;
+    private string newRatingComment = string.Empty;
 
     private void GoBackToList() => Navigation.NavigateTo("/bikebuilds");
 
@@ -94,6 +132,50 @@ else
         allComponents = componentsResponse.Components.ToList();
 
         await LoadBikeBuild();
+        await LoadRatings();
+    }
+
+    private async Task LoadRatings()
+    {
+        try
+        {
+            ratings = await RatingsClient.ListAsync(Id);
+        }
+        catch (HttpRequestException)
+        {
+            ratings = [];
+            Snackbar.Add("Failed to load ratings.", Severity.Error);
+        }
+    }
+
+    private async Task SubmitRating()
+    {
+        if (newRatingStars is < 1 or > 5)
+        {
+            Snackbar.Add("Pick 1 to 5 stars first.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var comment = string.IsNullOrWhiteSpace(newRatingComment) ? null : newRatingComment;
+            var response = await RatingsClient.CreateAsync(Id, new CreateRatingRequest(newRatingStars, comment, bikeBuild!.Name));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to submit rating.", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Rating submitted.", Severity.Success);
+            newRatingStars = 0;
+            newRatingComment = string.Empty;
+            await LoadRatings();
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("Failed to submit rating.", Severity.Error);
+        }
     }
 
     private async Task LoadBikeBuild()

@@ -18,6 +18,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   public const int WebHostPort = 18200;
   public const int WebPublicHostPort = 18300;
   public const int OidcHostPort = 18400;
+  public const int RatingsHostPort = 18500;
 
   public const string OidcTestUsername = "testuser";
   public const string OidcTestPassword = "password";
@@ -29,6 +30,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   public string ApiBaseAddress => $"http://127.0.0.1:{ApiHostPort}";
   public string WebBaseAddress => $"http://127.0.0.1:{WebHostPort}";
   public string WebPublicBaseAddress => $"http://127.0.0.1:{WebPublicHostPort}";
+  public string RatingsBaseAddress => $"http://127.0.0.1:{RatingsHostPort}";
   public IBrowser Browser { get; private set; } = null!;
 
   public static readonly string VideosDir = Path.Combine(AppContext.BaseDirectory, "TestResults", "videos");
@@ -83,6 +85,9 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   private IContainer _serviceBus = null!;
   private AzureKeyVaultEmulatorContainer _keyVault = null!;
   private IContainer _oidcMock = null!;
+  private IContainer _cosmos = null!;
+  private IFutureDockerImage _ratingsImage = null!;
+  private IContainer _ratings = null!;
   private IFutureDockerImage _apiImage = null!;
   private IFutureDockerImage _webImage = null!;
   private IFutureDockerImage _webPublicImage = null!;
@@ -169,8 +174,10 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             $$$"""{"IssuerUri":"{{{OidcIssuerUri}}}","AccessTokenJwtType":"JWT","Authentication":{"CookieSameSiteMode":"Lax"}}""")
         .WithEnvironment("API_SCOPES_INLINE",
             $$"""[{"Name":"{{OidcAudience}}"}]""")
+        // UserClaims: puts the user's name claim into access tokens for this API, the way a
+        // real Auth0 tenant would via an Action - the ratings service reads it for userName.
         .WithEnvironment("API_RESOURCES_INLINE",
-            $$"""[{"Name":"{{OidcAudience}}","Scopes":["{{OidcAudience}}"]}]""")
+            $$"""[{"Name":"{{OidcAudience}}","Scopes":["{{OidcAudience}}"],"UserClaims":["name"]}]""")
         .WithEnvironment("CLIENTS_CONFIGURATION_INLINE",
             $$"""
             [{
@@ -199,7 +206,20 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .UntilHttpRequestIsSucceeded(r => r.ForPort(80).ForPath("/.well-known/openid-configuration")))
         .Build();
 
-    await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync(), _oidcMock.StartAsync());
+    // The vnext Cosmos emulator's default http mode is unsupported by the .NET SDK, so it
+    // runs https with a self-signed cert the ratings app is configured to trust. The app
+    // reaches it by network alias only; the bound probe port is just for the wait strategy.
+    _cosmos = new ContainerBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest")
+        .WithNetwork(_network)
+        .WithNetworkAliases("cosmos-emulator")
+        .WithEnvironment("PROTOCOL", "https")
+        .WithEnvironment("ENABLE_EXPLORER", "false")
+        .WithPortBinding(8080, true)
+        .WithWaitStrategy(Wait.ForUnixContainer()
+            .UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/ready")))
+        .Build();
+
+    await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync(), _oidcMock.StartAsync(), _cosmos.StartAsync());
     await _serviceBus.StartAsync();
 
     // AzureKeyVaultEmulatorContainer doesn't expose Testcontainers' network-attachment API
@@ -216,6 +236,9 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BlobStorage",
         "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;");
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--ServiceBus", ServiceBusConnectionString);
+    // Well-known Cosmos emulator account key (public, not a secret in the real sense).
+    await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--Cosmos",
+        "AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
 
     var options = new DbContextOptionsBuilder<BikeBuilderDbContext>()
         .UseSqlServer(_sql.GetConnectionString())
@@ -242,6 +265,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithBuildArgument("AUTH0_AUDIENCE", OidcAudience)
         // The stub mints the aud claim from requested API scopes, not Auth0's audience param.
         .WithBuildArgument("AUTH0_EXTRA_SCOPES", OidcAudience)
+        .WithBuildArgument("RATINGS_API_BASE_ADDRESS", RatingsBaseAddress)
         .WithName("bikebuilder-web:test")
         .Build();
 
@@ -252,7 +276,14 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithName("bikebuilder-web-public:test")
         .Build();
 
-    await Task.WhenAll(_apiImage.CreateAsync(), _webImage.CreateAsync(), _webPublicImage.CreateAsync());
+    _ratingsImage = new ImageFromDockerfileBuilder()
+        .WithContextDirectory(solutionDir)
+        .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "BikeBuilder.API.Ratings")
+        .WithDockerfile("Dockerfile")
+        .WithName("bikebuilder-ratings:test")
+        .Build();
+
+    await Task.WhenAll(_apiImage.CreateAsync(), _webImage.CreateAsync(), _webPublicImage.CreateAsync(), _ratingsImage.CreateAsync());
 
 #pragma warning disable CS0618
     _api = new ContainerBuilder()
@@ -269,7 +300,28 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
         .Build();
-    await _api.StartAsync();
+
+    // The anonymous list endpoint returns 200 [] for any id, so probing it verifies the whole
+    // startup chain: Functions host + worker up, KV secrets fetched, Cosmos provisioned. The
+    // host's own "/" homepage responds 200 long before the worker is ready - don't probe it.
+    _ratings = new ContainerBuilder()
+        .WithImage(_ratingsImage)
+        .WithNetwork(_network)
+        .WithNetworkAliases("ratings")
+        .WithPortBinding(RatingsHostPort, 80)
+        .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
+        .WithEnvironment("Auth0__Authority", $"http://{OidcNetworkAlias}")
+        .WithEnvironment("Auth0__Audience", OidcAudience)
+        .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
+        .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
+        .WithEnvironment("Cosmos__DisableServerCertificateValidation", "true")
+        .WithWaitStrategy(Wait.ForUnixContainer()
+            .UntilHttpRequestIsSucceeded(
+                r => r.ForPort(80).ForPath("/api/bikebuilds/warmup/ratings"),
+                w => w.WithTimeout(TimeSpan.FromMinutes(3))))
+        .Build();
+
+    await Task.WhenAll(_api.StartAsync(), _ratings.StartAsync());
 
     _web = new ContainerBuilder()
         .WithImage(_webImage)
@@ -300,6 +352,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     await WaitUntilReachableAsync(WebBaseAddress);
     await WaitUntilReachableAsync(WebPublicBaseAddress);
     await WaitUntilReachableAsync(OidcIssuerUri);
+    await WaitUntilReachableAsync($"{RatingsBaseAddress}/api/bikebuilds/warmup/ratings");
 
     _playwright = await Playwright.CreateAsync();
     // Set HEADED=1 to watch the browser while the test runs (e.g. `$env:HEADED=1` in
@@ -394,6 +447,16 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
       await _api.DisposeAsync();
     }
 
+    if (_ratings is not null)
+    {
+      await _ratings.DisposeAsync();
+    }
+
+    if (_cosmos is not null)
+    {
+      await _cosmos.DisposeAsync();
+    }
+
     if (_azurite is not null)
     {
       await _azurite.DisposeAsync();
@@ -437,6 +500,11 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     if (_webPublicImage is not null)
     {
       await _webPublicImage.DisposeAsync();
+    }
+
+    if (_ratingsImage is not null)
+    {
+      await _ratingsImage.DisposeAsync();
     }
 
     if (_network is not null)

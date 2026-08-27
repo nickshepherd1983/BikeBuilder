@@ -37,6 +37,18 @@ services:
     volumes:
       - ./servicebus-emulator/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
 
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    environment:
+      # The .NET Cosmos SDK does not support the vnext emulator's default http mode.
+      PROTOCOL: "https"
+      ENABLE_EXPLORER: "false"
+    ports:
+      - "8081:8081"
+      - "8082:8080" # health probe: curl http://localhost:8082/ready
+    volumes:
+      - cosmos-data:/data
+
   keyvault-emulator:
     image: jamesgoulddev/azure-keyvault-emulator:latest
     ports:
@@ -49,3 +61,4 @@ services:
 volumes:
   sql-data:
   azurite-data:
+  cosmos-data:

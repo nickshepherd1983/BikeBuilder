@@ -78,4 +78,14 @@ builder.Services.AddScoped(sp =>
   return new ComponentImageClient(new HttpClient(handler) { BaseAddress = new Uri(apiBaseAddress) });
 });
 
+var ratingsApiBaseAddress = builder.Configuration["RatingsApiBaseAddress"] ?? "http://localhost:7071";
+
+builder.Services.AddScoped(sp =>
+{
+  var handler = sp.GetRequiredService<AuthorizationMessageHandler>()
+      .ConfigureHandler(authorizedUrls: [ratingsApiBaseAddress]);
+  handler.InnerHandler = new HttpClientHandler();
+  return new RatingsClient(new HttpClient(handler) { BaseAddress = new Uri(ratingsApiBaseAddress) });
+});
+
 await builder.Build().RunAsync();
