@@ -36,6 +36,6 @@ public class ComponentsPage(IPage page, string baseUrl)
     return await row.Locator("td").First.Locator("img").CountAsync() > 0;
   }
 
-  private ILocator RowByName(string componentName) =>
+  ILocator RowByName(string componentName) =>
       page.Locator("table tbody tr").Filter(new() { HasText = componentName });
 }

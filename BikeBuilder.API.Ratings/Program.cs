@@ -1,14 +1,7 @@
-﻿using System.Text.Json;
-using Azure.Core;
+﻿using Azure.Core;
 using Azure.Core.Pipeline;
-using Azure.Messaging.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
-using BikeBuilder.API.Ratings.Middleware;
-using BikeBuilder.API.Ratings.Services;
-using BikeBuilder.Contracts.Messaging;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -78,7 +71,7 @@ app.Run();
 // that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
 sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
 {
-  private static readonly HttpClient Client = new(new HttpClientHandler
+  static readonly HttpClient Client = new(new HttpClientHandler
   {
     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
   });

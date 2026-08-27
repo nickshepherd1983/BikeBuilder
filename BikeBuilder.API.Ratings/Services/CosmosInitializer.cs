@@ -1,6 +1,4 @@
-﻿using Microsoft.Azure.Cosmos;
-
-namespace BikeBuilder.API.Ratings.Services;
+﻿namespace BikeBuilder.API.Ratings.Services;
 
 public static class CosmosInitializer
 {

@@ -1,2 +1,13 @@
-﻿global using BikeBuilder.Contracts.Events;
+﻿global using System.Security.Claims;
+global using System.Text.Json;
+global using Azure.Messaging.ServiceBus;
+global using BikeBuilder.API.Ratings.Middleware;
+global using BikeBuilder.API.Ratings.Services;
+global using BikeBuilder.Contracts.Events;
 global using BikeBuilder.Contracts.Messaging;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.Azure.Cosmos;
+global using Microsoft.Azure.Functions.Worker;
+global using Microsoft.Azure.Functions.Worker.Middleware;
+global using Microsoft.Extensions.Configuration;

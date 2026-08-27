@@ -1,7 +1,4 @@
-﻿using System.Text.Json;
-using Azure.Messaging.ServiceBus;
-
-namespace BikeBuilder.API.Ratings.Services;
+﻿namespace BikeBuilder.API.Ratings.Services;
 
 // Mirrors BikeBuilder.API's ServiceBusEventPublisher exactly: PascalCase payload (default
 // JsonSerializer options) and the MessageType application property BikeBuilder.Web.Public's

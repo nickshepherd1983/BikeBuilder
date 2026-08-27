@@ -17,38 +17,3 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-
-    [Parameter] public string Title { get; set; } = "Component";
-    [Parameter] public List<ComponentMessage> AllComponents { get; set; } = [];
-    [Parameter] public int ComponentId { get; set; }
-    [Parameter] public int Quantity { get; set; } = 1;
-    [Parameter] public DateTime? Date { get; set; } = DateTime.Today;
-
-    private MudForm _form = null!;
-    private int _componentId;
-    private int _quantity = 1;
-    private DateTime? _date = DateTime.Today;
-
-    protected override void OnInitialized()
-    {
-        _componentId = ComponentId != 0 ? ComponentId : AllComponents.Count > 0 ? AllComponents[0].Id : 0;
-        _quantity = Quantity;
-        _date = Date;
-    }
-
-    private async Task Submit()
-    {
-        await _form.Validate();
-        if (!_form.IsValid || _date is null)
-        {
-            return;
-        }
-
-        MudDialog.Close(DialogResult.Ok((_componentId, _quantity, _date.Value)));
-    }
-
-    private void Cancel() => MudDialog.Cancel();
-}

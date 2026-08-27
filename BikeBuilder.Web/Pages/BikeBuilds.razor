@@ -1,9 +1,5 @@
 @page "/bikebuilds"
 @attribute [Authorize]
-@inject BikeBuildService.BikeBuildServiceClient BikeBuildClient
-@inject IDialogService DialogService
-@inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
 <PageTitle>Bike Builds</PageTitle>
 
@@ -14,7 +10,7 @@
     </MudButton>
 </MudStack>
 
-<MudTable Items="@bikeBuilds" Loading="@(bikeBuilds is null)" Hover="true" Bordered="true">
+<MudTable Items="@_bikeBuilds" Loading="@(_bikeBuilds is null)" Hover="true" Bordered="true">
     <HeaderContent>
         <MudTh>Name</MudTh>
         <MudTh>Date</MudTh>
@@ -38,83 +34,3 @@
         <MudText>No bike builds yet. Create one to get started.</MudText>
     </NoRecordsContent>
 </MudTable>
-
-@code {
-    private List<BikeBuildMessage>? bikeBuilds;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadBikeBuilds();
-    }
-
-    private async Task LoadBikeBuilds()
-    {
-        var response = await BikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest());
-        bikeBuilds = response.BikeBuilds.ToList();
-    }
-
-    private void EditBikeBuild(int id) => Navigation.NavigateTo($"/bikebuilds/{id}/edit");
-
-    private static string FormatCost(string cost) =>
-        decimal.TryParse(cost, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value)
-            ? value.ToString("C2")
-            : cost;
-
-    private async Task CreateBikeBuild()
-    {
-        var parameters = new DialogParameters<BikeBuildDialog>
-        {
-            { x => x.Title, "Create Bike Build" }
-        };
-
-        var dialog = await DialogService.ShowAsync<BikeBuildDialog>("Create Bike Build", parameters);
-        var result = await dialog.Result;
-
-        if (result is null || result.Canceled)
-        {
-            return;
-        }
-
-        var (name, date, description) = ((string, DateTime, string))result.Data!;
-
-        try
-        {
-            var created = await BikeBuildClient.CreateBikeBuildAsync(new CreateBikeBuildRequest
-            {
-                Name = name,
-                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(date, DateTimeKind.Utc))),
-                Description = description
-            });
-
-            Navigation.NavigateTo($"/bikebuilds/{created.Id}/edit");
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            Snackbar.Add(ex.Status.Detail, Severity.Error);
-        }
-    }
-
-    private async Task DeleteBikeBuild(BikeBuildMessage bikeBuild)
-    {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Delete Bike Build",
-            $"Delete \"{bikeBuild.Name}\"? This will also remove its component assignments.",
-            yesText: "Delete", cancelText: "Cancel");
-
-        if (confirmed != true)
-        {
-            return;
-        }
-
-        try
-        {
-            await BikeBuildClient.DeleteBikeBuildAsync(new DeleteBikeBuildRequest { Id = bikeBuild.Id });
-            Snackbar.Add("Bike build deleted.", Severity.Success);
-            await LoadBikeBuilds();
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            Snackbar.Add(ex.Status.Detail, Severity.Error);
-        }
-    }
-}

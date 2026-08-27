@@ -1,5 +1,3 @@
-@inject NavigationManager Navigation
-
 <AuthorizeView>
     <Authorized>
         <MudText Class="mr-2">@context.User.Identity?.Name</MudText>
@@ -12,9 +10,3 @@
         </MudButton>
     </NotAuthorized>
 </AuthorizeView>
-
-@code {
-    private void BeginLogIn() => Navigation.NavigateToLogin("authentication/login");
-
-    private void BeginLogOut() => Navigation.NavigateToLogout("authentication/logout");
-}

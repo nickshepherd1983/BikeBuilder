@@ -1,6 +1,6 @@
 ﻿namespace BikeBuilder.Test.Integration.PageObjects;
 
-internal static class RetryHelper
+static class RetryHelper
 {
   /// <summary>
   /// Retries <paramref name="action"/> up to <paramref name="maxAttempts"/> times, as a defense
@@ -24,9 +24,7 @@ internal static class RetryHelper
         lastError = ex;
 
         if (attempt < maxAttempts)
-        {
           await Task.Delay(TimeSpan.FromSeconds(1));
-        }
       }
     }
 

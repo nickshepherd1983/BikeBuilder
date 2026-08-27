@@ -1,9 +1,4 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Middleware;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.JsonWebTokens;
+﻿using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -14,13 +9,13 @@ namespace BikeBuilder.API.Ratings.Middleware;
 // issuer taken from the authority's discovery document (so the stub issuer used in
 // integration tests works), audience from config, sub as the name claim. Applied via
 // UseWhen to the functions that require an authenticated user.
-internal sealed class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
+sealed class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
 {
   public const string UserContextKey = "User";
 
-  private readonly ConfigurationManager<OpenIdConnectConfiguration> _configurationManager;
-  private readonly JsonWebTokenHandler _tokenHandler = new();
-  private readonly string _audience;
+  readonly ConfigurationManager<OpenIdConnectConfiguration> _configurationManager;
+  readonly JsonWebTokenHandler _tokenHandler = new();
+  readonly string _audience;
 
   public JwtAuthenticationMiddleware(IConfiguration config)
   {

@@ -1,6 +1,4 @@
-using BikeBuilder.Test.Integration.PageObjects;
-
-namespace BikeBuilder.Test.Integration;
+﻿namespace BikeBuilder.Test.Integration;
 
 [Collection("BikeBuilderApp")]
 public class SmokeTests(BikeBuilderAppFixture fixture)
@@ -34,7 +32,7 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     }
   }
 
-  private async Task RunScenarioAsync(IPage page, IPage notificationPage)
+  async Task RunScenarioAsync(IPage page, IPage notificationPage)
   {
     var components = new ComponentsPage(page, fixture.WebBaseAddress);
     var bikeBuilds = new BikeBuildsPage(page, fixture.WebBaseAddress);

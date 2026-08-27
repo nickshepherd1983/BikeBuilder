@@ -1,11 +1,7 @@
-﻿using BikeBuilder.API.Protos;
-using BikeBuilder.Web;
-using BikeBuilder.Web.Services;
-using Grpc.Core;
+﻿using BikeBuilder.Web;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 

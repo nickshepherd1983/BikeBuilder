@@ -60,7 +60,7 @@ app.Run();
 // that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
 sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
 {
-  private static readonly HttpClient Client = new(new HttpClientHandler
+  static readonly HttpClient Client = new(new HttpClientHandler
   {
     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
   });

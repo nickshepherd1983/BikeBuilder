@@ -1,8 +1,4 @@
-﻿using System.Globalization;
-using BikeBuilder.API.Protos;
-using BikeBuilder.Contracts.Events;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
 
 namespace BikeBuilder.API.Services;
 
@@ -129,7 +125,7 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
     return new RemoveBikeBuildComponentResponse { Success = true };
   }
 
-  private async Task<Data.Entities.BikeBuild> LoadBikeBuildWithComponents(int id, CancellationToken cancellationToken)
+  async Task<Data.Entities.BikeBuild> LoadBikeBuildWithComponents(int id, CancellationToken cancellationToken)
   {
     return await db.BikeBuilds
         .Include(b => b.BikeBuildComponents)
@@ -139,7 +135,7 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
         ?? throw new RpcException(new Status(StatusCode.NotFound, $"BikeBuild {id} not found."));
   }
 
-  private static BikeBuildMessage ToMessage(Data.Entities.BikeBuild bikeBuild, bool includeComponents)
+  static BikeBuildMessage ToMessage(Data.Entities.BikeBuild bikeBuild, bool includeComponents)
   {
     var message = new BikeBuildMessage
     {
@@ -151,14 +147,12 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
     };
 
     if (includeComponents)
-    {
       message.Components.AddRange(bikeBuild.BikeBuildComponents.Select(x => ToMessage(x, x.Component.Name)));
-    }
 
     return message;
   }
 
-  private static BikeBuildComponentMessage ToMessage(Data.Entities.BikeBuildComponent bikeBuildComponent, string componentName) => new()
+  static BikeBuildComponentMessage ToMessage(Data.Entities.BikeBuildComponent bikeBuildComponent, string componentName) => new()
   {
     Id = bikeBuildComponent.Id,
     BikeBuildId = bikeBuildComponent.BikeBuildId,

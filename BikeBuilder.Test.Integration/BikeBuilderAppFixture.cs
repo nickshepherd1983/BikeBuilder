@@ -61,40 +61,40 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     }
   }
 
-  private const string ServiceBusSqlPassword = "BikeBuilder!Bus2026";
-  private const string ServiceBusConnectionString =
+  const string ServiceBusSqlPassword = "BikeBuilder!Bus2026";
+  const string ServiceBusConnectionString =
       "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
-  private const int KeyVaultContainerPort = 4997;
-  private const string KeyVaultNetworkAlias = "keyvault-emulator";
-  private static readonly string KeyVaultVaultUri = $"https://{KeyVaultNetworkAlias}:{KeyVaultContainerPort}";
+  const int KeyVaultContainerPort = 4997;
+  const string KeyVaultNetworkAlias = "keyvault-emulator";
+  static readonly string KeyVaultVaultUri = $"https://{KeyVaultNetworkAlias}:{KeyVaultContainerPort}";
 
   // The issuer the browser uses must equal the token's iss claim. IdentityServer pins the
   // issuer via IssuerUri but generates the discovery document's *endpoint* URLs from each
   // request's host, so the browser (via the host port binding) and the API (via the
   // "oidc-mock" network alias) can both reach the stub while agreeing on this one issuer.
-  private static readonly string OidcIssuerUri = $"http://127.0.0.1:{OidcHostPort}";
-  private const string OidcNetworkAlias = "oidc-mock";
-  private const string OidcAudience = "bikebuilder-api";
-  private const string OidcClientId = "bikebuilder-web";
+  static readonly string OidcIssuerUri = $"http://127.0.0.1:{OidcHostPort}";
+  const string OidcNetworkAlias = "oidc-mock";
+  const string OidcAudience = "bikebuilder-api";
+  const string OidcClientId = "bikebuilder-web";
 
-  private INetwork _network = null!;
-  private MsSqlContainer _sql = null!;
-  private AzuriteContainer _azurite = null!;
-  private IContainer _serviceBusSql = null!;
-  private IContainer _serviceBus = null!;
-  private AzureKeyVaultEmulatorContainer _keyVault = null!;
-  private IContainer _oidcMock = null!;
-  private IContainer _cosmos = null!;
-  private IFutureDockerImage _ratingsImage = null!;
-  private IContainer _ratings = null!;
-  private IFutureDockerImage _apiImage = null!;
-  private IFutureDockerImage _webImage = null!;
-  private IFutureDockerImage _webPublicImage = null!;
-  private IContainer _api = null!;
-  private IContainer _web = null!;
-  private IContainer _webPublic = null!;
-  private IPlaywright _playwright = null!;
+  INetwork _network = null!;
+  MsSqlContainer _sql = null!;
+  AzuriteContainer _azurite = null!;
+  IContainer _serviceBusSql = null!;
+  IContainer _serviceBus = null!;
+  AzureKeyVaultEmulatorContainer _keyVault = null!;
+  IContainer _oidcMock = null!;
+  IContainer _cosmos = null!;
+  IFutureDockerImage _ratingsImage = null!;
+  IContainer _ratings = null!;
+  IFutureDockerImage _apiImage = null!;
+  IFutureDockerImage _webImage = null!;
+  IFutureDockerImage _webPublicImage = null!;
+  IContainer _api = null!;
+  IContainer _web = null!;
+  IContainer _webPublic = null!;
+  IPlaywright _playwright = null!;
 
   public async Task InitializeAsync()
   {
@@ -381,7 +381,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     });
   }
 
-  private static async Task RunDockerCommandAsync(string arguments)
+  static async Task RunDockerCommandAsync(string arguments)
   {
     using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", arguments)
     {
@@ -398,7 +398,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     }
   }
 
-  private static async Task WaitUntilReachableAsync(string baseUrl)
+  static async Task WaitUntilReachableAsync(string baseUrl)
   {
     using var client = new HttpClient();
     var deadline = DateTime.UtcNow.AddSeconds(30);
@@ -426,90 +426,56 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // InitializeAsync may have thrown partway through, leaving later fields unset - guard
     // each teardown step so a partial-startup failure doesn't also mask a NullReferenceException.
     if (Browser is not null)
-    {
       await Browser.CloseAsync();
-    }
 
     _playwright?.Dispose();
 
     if (_web is not null)
-    {
       await _web.DisposeAsync();
-    }
 
     if (_webPublic is not null)
-    {
       await _webPublic.DisposeAsync();
-    }
 
     if (_api is not null)
-    {
       await _api.DisposeAsync();
-    }
 
     if (_ratings is not null)
-    {
       await _ratings.DisposeAsync();
-    }
 
     if (_cosmos is not null)
-    {
       await _cosmos.DisposeAsync();
-    }
 
     if (_azurite is not null)
-    {
       await _azurite.DisposeAsync();
-    }
 
     if (_serviceBus is not null)
-    {
       await _serviceBus.DisposeAsync();
-    }
 
     if (_serviceBusSql is not null)
-    {
       await _serviceBusSql.DisposeAsync();
-    }
 
     if (_keyVault is not null)
-    {
       await _keyVault.DisposeAsync();
-    }
 
     if (_oidcMock is not null)
-    {
       await _oidcMock.DisposeAsync();
-    }
 
     if (_sql is not null)
-    {
       await _sql.DisposeAsync();
-    }
 
     if (_apiImage is not null)
-    {
       await _apiImage.DisposeAsync();
-    }
 
     if (_webImage is not null)
-    {
       await _webImage.DisposeAsync();
-    }
 
     if (_webPublicImage is not null)
-    {
       await _webPublicImage.DisposeAsync();
-    }
 
     if (_ratingsImage is not null)
-    {
       await _ratingsImage.DisposeAsync();
-    }
 
     if (_network is not null)
-    {
       await _network.DeleteAsync();
-    }
   }
 }

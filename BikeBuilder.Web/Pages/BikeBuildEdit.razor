@@ -1,15 +1,9 @@
 @page "/bikebuilds/{Id:int}/edit"
 @attribute [Authorize]
-@inject BikeBuildService.BikeBuildServiceClient BikeBuildClient
-@inject ComponentService.ComponentServiceClient ComponentClient
-@inject RatingsClient RatingsClient
-@inject IDialogService DialogService
-@inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
 <PageTitle>Edit Bike Build</PageTitle>
 
-@if (bikeBuild is null || allComponents is null)
+@if (_bikeBuild is null || _allComponents is null)
 {
     <MudProgressCircular Indeterminate="true" Class="mt-4" />
 }
@@ -24,13 +18,13 @@ else
         <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="name" Label="Name" Required="true" />
+                    <MudTextField @bind-Value="_name" Label="Name" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="date" Label="Date" Required="true" />
+                    <MudDatePicker @bind-Date="_date" Label="Date" Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="5">
-                    <MudTextField @bind-Value="description" Label="Description" />
+                    <MudTextField @bind-Value="_description" Label="Description" />
                 </MudItem>
             </MudGrid>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBikeBuild" Class="mt-3">Save</MudButton>
@@ -40,14 +34,14 @@ else
     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
         <MudText Typo="Typo.h5">Components</MudText>
         <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h6">Total: @FormatCost(bikeBuild.Total)</MudText>
+            <MudText Typo="Typo.h6">Total: @FormatCost(_bikeBuild.Total)</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddBikeBuildComponent">
                 Add Component
             </MudButton>
         </MudStack>
     </MudStack>
 
-    <MudTable Items="@bikeBuild.Components" Hover="true" Bordered="true">
+    <MudTable Items="@_bikeBuild.Components" Hover="true" Bordered="true">
         <HeaderContent>
             <MudTh>Component</MudTh>
             <MudTh>Quantity</MudTh>
@@ -72,18 +66,18 @@ else
 
     <MudPaper Class="pa-4 mb-6 mt-6" Elevation="1">
         <MudText Typo="Typo.h5" Class="mb-2">Ratings</MudText>
-        @if (ratings is null)
+        @if (_ratings is null)
         {
             <MudProgressCircular Indeterminate="true" />
         }
-        else if (ratings.Count == 0)
+        else if (_ratings.Count == 0)
         {
             <MudText>No ratings yet.</MudText>
         }
         else
         {
             <MudStack Spacing="3">
-                @foreach (var rating in ratings)
+                @foreach (var rating in _ratings)
                 {
                     <div>
                         <MudRating SelectedValue="@rating.Stars" ReadOnly="true" />
@@ -98,218 +92,8 @@ else
         }
 
         <MudText Typo="Typo.h6" Class="mt-4">Leave a rating</MudText>
-        <MudRating @bind-SelectedValue="newRatingStars" />
-        <MudTextField @bind-Value="newRatingComment" Label="Comment" Lines="3" />
+        <MudRating @bind-SelectedValue="_newRatingStars" />
+        <MudTextField @bind-Value="_newRatingComment" Label="Comment" Lines="3" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="SubmitRating">Submit rating</MudButton>
     </MudPaper>
-}
-
-@code {
-    [Parameter] public int Id { get; set; }
-
-    private MudForm _form = null!;
-    private BikeBuildMessage? bikeBuild;
-    private List<ComponentMessage>? allComponents;
-
-    private string name = string.Empty;
-    private DateTime? date = DateTime.Today;
-    private string description = string.Empty;
-
-    private List<RatingDto>? ratings;
-    private int newRatingStars;
-    private string newRatingComment = string.Empty;
-
-    private void GoBackToList() => Navigation.NavigateTo("/bikebuilds");
-
-    private static string FormatCost(string cost) =>
-        decimal.TryParse(cost, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value)
-            ? value.ToString("C2")
-            : cost;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var componentsResponse = await ComponentClient.ListComponentsAsync(new ListComponentsRequest());
-        allComponents = componentsResponse.Components.ToList();
-
-        await LoadBikeBuild();
-        await LoadRatings();
-    }
-
-    private async Task LoadRatings()
-    {
-        try
-        {
-            ratings = await RatingsClient.ListAsync(Id);
-        }
-        catch (HttpRequestException)
-        {
-            ratings = [];
-            Snackbar.Add("Failed to load ratings.", Severity.Error);
-        }
-    }
-
-    private async Task SubmitRating()
-    {
-        if (newRatingStars is < 1 or > 5)
-        {
-            Snackbar.Add("Pick 1 to 5 stars first.", Severity.Warning);
-            return;
-        }
-
-        try
-        {
-            var comment = string.IsNullOrWhiteSpace(newRatingComment) ? null : newRatingComment;
-            var response = await RatingsClient.CreateAsync(Id, new CreateRatingRequest(newRatingStars, comment, bikeBuild!.Name));
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Failed to submit rating.", Severity.Error);
-                return;
-            }
-
-            Snackbar.Add("Rating submitted.", Severity.Success);
-            newRatingStars = 0;
-            newRatingComment = string.Empty;
-            await LoadRatings();
-        }
-        catch (HttpRequestException)
-        {
-            Snackbar.Add("Failed to submit rating.", Severity.Error);
-        }
-    }
-
-    private async Task LoadBikeBuild()
-    {
-        bikeBuild = await BikeBuildClient.GetBikeBuildAsync(new GetBikeBuildRequest { Id = Id });
-        name = bikeBuild.Name;
-        date = bikeBuild.Date.ToDateTimeOffset().Date;
-        description = bikeBuild.Description;
-    }
-
-    private async Task SaveBikeBuild()
-    {
-        if (date is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await BikeBuildClient.UpdateBikeBuildAsync(new UpdateBikeBuildRequest
-            {
-                Id = Id,
-                Name = name,
-                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(date.Value, DateTimeKind.Utc))),
-                Description = description
-            });
-
-            Snackbar.Add("Bike build saved.", Severity.Success);
-            await LoadBikeBuild();
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            Snackbar.Add(ex.Status.Detail, Severity.Error);
-        }
-    }
-
-    private async Task AddBikeBuildComponent()
-    {
-        var parameters = new DialogParameters<BikeBuildComponentDialog>
-        {
-            { x => x.Title, "Add Component" },
-            { x => x.AllComponents, allComponents! }
-        };
-
-        var dialog = await DialogService.ShowAsync<BikeBuildComponentDialog>("Add Component", parameters);
-        var result = await dialog.Result;
-
-        if (result is null || result.Canceled)
-        {
-            return;
-        }
-
-        var (componentId, quantity, componentDate) = ((int, int, DateTime))result.Data!;
-
-        try
-        {
-            await BikeBuildClient.AddBikeBuildComponentAsync(new AddBikeBuildComponentRequest
-            {
-                BikeBuildId = Id,
-                ComponentId = componentId,
-                Quantity = quantity,
-                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(componentDate, DateTimeKind.Utc)))
-            });
-
-            Snackbar.Add("Component added.", Severity.Success);
-            await LoadBikeBuild();
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            Snackbar.Add(ex.Status.Detail, Severity.Error);
-        }
-    }
-
-    private async Task EditBikeBuildComponent(BikeBuildComponentMessage bbc)
-    {
-        var parameters = new DialogParameters<BikeBuildComponentDialog>
-        {
-            { x => x.Title, "Edit Component" },
-            { x => x.AllComponents, allComponents! },
-            { x => x.ComponentId, bbc.ComponentId },
-            { x => x.Quantity, bbc.Quantity },
-            { x => x.Date, bbc.Date.ToDateTimeOffset().Date }
-        };
-
-        var dialog = await DialogService.ShowAsync<BikeBuildComponentDialog>("Edit Component", parameters);
-        var result = await dialog.Result;
-
-        if (result is null || result.Canceled)
-        {
-            return;
-        }
-
-        var (componentId, quantity, componentDate) = ((int, int, DateTime))result.Data!;
-
-        try
-        {
-            await BikeBuildClient.UpdateBikeBuildComponentAsync(new UpdateBikeBuildComponentRequest
-            {
-                Id = bbc.Id,
-                ComponentId = componentId,
-                Quantity = quantity,
-                Date = Timestamp.FromDateTimeOffset(new DateTimeOffset(DateTime.SpecifyKind(componentDate, DateTimeKind.Utc)))
-            });
-
-            Snackbar.Add("Component updated.", Severity.Success);
-            await LoadBikeBuild();
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            Snackbar.Add(ex.Status.Detail, Severity.Error);
-        }
-    }
-
-    private async Task RemoveBikeBuildComponent(BikeBuildComponentMessage bbc)
-    {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Remove Component",
-            $"Remove \"{bbc.ComponentName}\" from this bike build?",
-            yesText: "Remove", cancelText: "Cancel");
-
-        if (confirmed != true)
-        {
-            return;
-        }
-
-        try
-        {
-            await BikeBuildClient.RemoveBikeBuildComponentAsync(new RemoveBikeBuildComponentRequest { Id = bbc.Id });
-            Snackbar.Add("Component removed.", Severity.Success);
-            await LoadBikeBuild();
-        }
-        catch (Grpc.Core.RpcException ex)
-        {
-            Snackbar.Add(ex.Status.Detail, Severity.Error);
-        }
-    }
 }

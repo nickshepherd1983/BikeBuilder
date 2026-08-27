@@ -1,6 +1,6 @@
 ﻿namespace BikeBuilder.Test.Integration.PageObjects;
 
-internal static class NavigationHelper
+static class NavigationHelper
 {
   /// <summary>
   /// Navigates to <paramref name="url"/> and waits for <paramref name="expectedHeading"/> to
@@ -67,7 +67,7 @@ internal static class NavigationHelper
   /// ended up, the browser console, and a screenshot - the redirect chain through the stub
   /// OIDC issuer has too many moving parts to debug from a bare "element not found".
   /// </summary>
-  private static async Task WaitWithDiagnosticsAsync(IPage page, ILocator locator, string stage, string url, List<string> consoleMessages)
+  static async Task WaitWithDiagnosticsAsync(IPage page, ILocator locator, string stage, string url, List<string> consoleMessages)
   {
     try
     {

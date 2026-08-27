@@ -1,0 +1,9 @@
+﻿global using System.Globalization;
+global using BikeBuilder.API.Protos;
+global using BikeBuilder.Web.Dialogs;
+global using BikeBuilder.Web.Services;
+global using Google.Protobuf.WellKnownTypes;
+global using Grpc.Core;
+global using Microsoft.AspNetCore.Components;
+global using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+global using MudBlazor;

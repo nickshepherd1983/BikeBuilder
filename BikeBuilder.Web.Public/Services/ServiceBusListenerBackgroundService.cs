@@ -8,7 +8,7 @@ public class ServiceBusListenerBackgroundService(
     IHubContext<NotificationHub> hubContext,
     ILogger<ServiceBusListenerBackgroundService> logger) : BackgroundService
 {
-  private ServiceBusProcessor? _processor;
+  ServiceBusProcessor? _processor;
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
@@ -23,7 +23,7 @@ public class ServiceBusListenerBackgroundService(
     await _processor.StartProcessingAsync(stoppingToken);
   }
 
-  private async Task OnMessageReceivedAsync(ProcessMessageEventArgs args)
+  async Task OnMessageReceivedAsync(ProcessMessageEventArgs args)
   {
     var messageType = args.Message.ApplicationProperties.GetValueOrDefault("MessageType") as string;
 
@@ -39,22 +39,18 @@ public class ServiceBusListenerBackgroundService(
     };
 
     if (text is not null)
-    {
       await hubContext.Clients.All.SendAsync("ReceiveNotification", text, args.CancellationToken);
-    }
 
     await args.CompleteMessageAsync(args.Message, args.CancellationToken);
   }
 
-  private static string FormatRatingCreated(RatingCreatedEvent rating) =>
+  static string FormatRatingCreated(RatingCreatedEvent rating) =>
       $"New {rating.Stars}-star rating for {rating.BikeBuildName}";
 
   public override async Task StopAsync(CancellationToken cancellationToken)
   {
     if (_processor is not null)
-    {
       await _processor.StopProcessingAsync(cancellationToken);
-    }
 
     await base.StopAsync(cancellationToken);
   }

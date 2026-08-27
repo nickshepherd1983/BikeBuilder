@@ -1,9 +1,4 @@
-﻿using System.Globalization;
-using BikeBuilder.API.Protos;
-using BikeBuilder.Contracts.Events;
-using Grpc.Core;
-
-namespace BikeBuilder.API.Services;
+﻿namespace BikeBuilder.API.Services;
 
 public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorageService storage, IEventPublisher eventPublisher) : ComponentService.ComponentServiceBase
 {
@@ -81,14 +76,12 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     }
 
     if (component.Image is not null)
-    {
       await storage.DeleteAsync(component.Image.BlobName, context.CancellationToken);
-    }
 
     return new DeleteComponentResponse { Success = true };
   }
 
-  private static ComponentMessage ToMessage(Data.Entities.Component component) => new()
+  static ComponentMessage ToMessage(Data.Entities.Component component) => new()
   {
     Id = component.Id,
     Name = component.Name,
@@ -98,7 +91,7 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     ImageVersion = component.Image?.UploadedAt.UtcTicks ?? 0
   };
 
-  private static decimal ParseCost(string cost)
+  static decimal ParseCost(string cost)
   {
     if (!decimal.TryParse(cost, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
     {

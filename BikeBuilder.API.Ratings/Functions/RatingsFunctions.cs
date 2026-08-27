@@ -1,20 +1,12 @@
-﻿using System.Security.Claims;
-using System.Text.Json;
-using BikeBuilder.API.Ratings.Middleware;
-using BikeBuilder.API.Ratings.Models;
-using BikeBuilder.API.Ratings.Services;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Functions.Worker;
+﻿using BikeBuilder.API.Ratings.Models;
 
 namespace BikeBuilder.API.Ratings.Functions;
 
 public class RatingsFunctions(Container container, IEventPublisher eventPublisher)
 {
-  private const int MaxCommentLength = 1000;
+  const int MaxCommentLength = 1000;
 
-  private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+  static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
 
   [Function("CreateRating")]
   public async Task<IActionResult> CreateRatingAsync(
@@ -33,9 +25,7 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
     }
 
     if (request?.Stars is not (>= 1 and <= 5))
-    {
       return new BadRequestObjectResult("stars is required and must be between 1 and 5.");
-    }
 
     if (request.Comment?.Length > MaxCommentLength)
     {
@@ -43,9 +33,7 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
     }
 
     if (string.IsNullOrWhiteSpace(request.BikeBuildName))
-    {
       return new BadRequestObjectResult("bikeBuildName is required.");
-    }
 
     var user = (ClaimsPrincipal)context.Items[JwtAuthenticationMiddleware.UserContextKey]!;
     var userId = user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)!.Value;

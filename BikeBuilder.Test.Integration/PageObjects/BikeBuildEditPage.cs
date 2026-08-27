@@ -1,6 +1,4 @@
-﻿using static Microsoft.Playwright.Assertions;
-
-namespace BikeBuilder.Test.Integration.PageObjects;
+﻿namespace BikeBuilder.Test.Integration.PageObjects;
 
 public class BikeBuildEditPage(IPage page)
 {
@@ -45,5 +43,5 @@ public class BikeBuildEditPage(IPage page)
     await Expect(RatingsSection.GetByText(userName)).ToBeVisibleAsync(new() { Timeout = 8000 });
   }
 
-  private ILocator RatingsSection => page.Locator(".mud-paper", new() { HasText = "Leave a rating" });
+  ILocator RatingsSection => page.Locator(".mud-paper", new() { HasText = "Leave a rating" });
 }

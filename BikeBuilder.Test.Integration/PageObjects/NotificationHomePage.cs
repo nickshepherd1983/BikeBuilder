@@ -1,6 +1,4 @@
-﻿using static Microsoft.Playwright.Assertions;
-
-namespace BikeBuilder.Test.Integration.PageObjects;
+﻿namespace BikeBuilder.Test.Integration.PageObjects;
 
 public class NotificationHomePage(IPage page, string baseUrl)
 {
