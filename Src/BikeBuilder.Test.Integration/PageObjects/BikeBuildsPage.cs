@@ -5,6 +5,12 @@ public class BikeBuildsPage(IPage page, string baseUrl)
   public Task GotoAsync() =>
       NavigationHelper.GotoAndWaitForHeadingAsync(page, $"{baseUrl}/bikebuilds", "Bike Builds");
 
+  ILocator RowByName(string buildName) =>
+      page.Locator("table tbody tr").Filter(new() { HasText = buildName });
+
+  // Columns: Name | Date | Description | Total | Ratings | actions.
+  public ILocator RatingsCountCell(string buildName) => RowByName(buildName).Locator("td:nth-child(5)");
+
   public async Task<BikeBuildEditPage> CreateBikeBuildAsync(string name, string description)
   {
     await RetryHelper.RunAsync(async () =>

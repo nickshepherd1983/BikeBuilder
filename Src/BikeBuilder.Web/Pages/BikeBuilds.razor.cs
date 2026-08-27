@@ -2,11 +2,13 @@
 
 public partial class BikeBuilds(
     BikeBuildService.BikeBuildServiceClient _bikeBuildClient,
+    RatingsClient _ratingsClient,
     IDialogService _dialogService,
     ISnackbar _snackbar,
     NavigationManager _navigation)
 {
   List<BikeBuildMessage>? _bikeBuilds;
+  Dictionary<int, int>? _ratingCounts;
 
   protected override async Task OnInitializedAsync()
   {
@@ -17,6 +19,20 @@ public partial class BikeBuilds(
   {
     var response = await _bikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest());
     _bikeBuilds = [.. response.BikeBuilds];
+    await LoadRatingCounts();
+  }
+
+  async Task LoadRatingCounts()
+  {
+    try
+    {
+      _ratingCounts = await _ratingsClient.GetCountsAsync(_bikeBuilds!.Select(b => b.Id));
+    }
+    catch (HttpRequestException)
+    {
+      // Ratings service unavailable - the grid still renders, counts just stay blank.
+      _ratingCounts = null;
+    }
   }
 
   void EditBikeBuild(int id) => _navigation.NavigateTo($"/bikebuilds/{id}/edit");

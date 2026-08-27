@@ -75,5 +75,10 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     await editPage.AddRatingAsync(stars: 5, "Even better downhill");
     await editPage.WaitForRatingAsync("Even better downhill", "Test User");
     await notifications.WaitForNotificationAsync($"New 5-star rating for {buildName}");
+
+    // Back on the grid, the Ratings column should show both ratings. Expect polls, so the
+    // async count fetch after the grid renders can't race this assertion.
+    await bikeBuilds.GotoAsync();
+    await Expect(bikeBuilds.RatingsCountCell(buildName)).ToHaveTextAsync("2");
   }
 }

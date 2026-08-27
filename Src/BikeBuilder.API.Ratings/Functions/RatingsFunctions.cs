@@ -86,4 +86,36 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
 
     return new OkObjectResult(ratings);
   }
+
+  [Function("GetRatingCounts")]
+  public async Task<IActionResult> GetRatingCountsAsync(
+      [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "bikebuilds/ratings/counts")] HttpRequest req,
+      FunctionContext context)
+  {
+    var ids = req.Query["ids"].ToString()
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    if (ids.Length == 0)
+      return new OkObjectResult(Array.Empty<RatingCountDto>());
+
+    // Cross-partition on purpose: counts span many bikeBuildId partitions. Counting in
+    // memory instead of GROUP BY keeps the query within what the Cosmos emulator supports.
+    var query = new QueryDefinition(
+            "SELECT VALUE c.bikeBuildId FROM c WHERE ARRAY_CONTAINS(@ids, c.bikeBuildId)")
+        .WithParameter("@ids", ids);
+
+    var ratedBuildIds = new List<string>();
+    using var iterator = container.GetItemQueryIterator<string>(query);
+    while (iterator.HasMoreResults)
+    {
+      ratedBuildIds.AddRange(await iterator.ReadNextAsync(context.CancellationToken));
+    }
+
+    var counts = ratedBuildIds
+        .GroupBy(id => id)
+        .Select(group => new RatingCountDto(group.Key, group.Count()))
+        .ToList();
+
+    return new OkObjectResult(counts);
+  }
 }
