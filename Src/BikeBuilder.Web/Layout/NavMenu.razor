@@ -1,5 +1,7 @@
 <MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="components" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Components</MudNavLink>
-    <MudNavLink Href="bikebuilds" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PedalBike">Bike Builds</MudNavLink>
+    <AuthorizeView>
+        <MudNavLink Href="components" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Components</MudNavLink>
+        <MudNavLink Href="bikebuilds" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PedalBike">Bike Builds</MudNavLink>
+    </AuthorizeView>
 </MudNavMenu>

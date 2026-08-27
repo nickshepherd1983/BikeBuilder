@@ -1,10 +1,15 @@
 @page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>The worlds BEST Bike Builder</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">BikeBuilder</MudText>
+<MudText Typo="Typo.h3" GutterBottom="true">The worlds BEST Bike Builder</MudText>
 <MudText Typo="Typo.body1">Manage your components and assemble your bike builds.</MudText>
 
+<AuthorizeView>
+    <NotAuthorized>
+        <MudText Typo="Typo.body1" Class="mt-4">Log in to manage your components and bike builds.</MudText>
+    </NotAuthorized>
+    <Authorized>
 <MudGrid Class="mt-4">
     <MudItem xs="12" sm="6">
         <MudCard>
@@ -29,3 +34,5 @@
         </MudCard>
     </MudItem>
 </MudGrid>
+    </Authorized>
+</AuthorizeView>

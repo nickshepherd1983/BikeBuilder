@@ -10,6 +10,9 @@ public partial class Components(
 {
   static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".gif"];
 
+  // Roughly double the dialog's natural content width: stretch it to MaxWidth.Small (600px).
+  static readonly DialogOptions ComponentDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
   List<ComponentMessage>? _components;
   bool _isUploading;
 
@@ -36,7 +39,7 @@ public partial class Components(
       { x => x.Title, "Add Component" }
     };
 
-    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Add Component", parameters);
+    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Add Component", parameters, ComponentDialogOptions);
     var result = await dialog.Result;
 
     if (result is null || result.Canceled)
@@ -75,7 +78,7 @@ public partial class Components(
       { x => x.Manufacturer, component.Manufacturer }
     };
 
-    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Edit Component", parameters);
+    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Edit Component", parameters, ComponentDialogOptions);
     var result = await dialog.Result;
 
     if (result is null || result.Canceled)
