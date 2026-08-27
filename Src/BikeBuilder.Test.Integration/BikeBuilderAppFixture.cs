@@ -233,9 +233,19 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // using the emulator's host-mapped port (this runs on the test host, not inside a container).
     var keyVaultSecretClient = AzureKeyVaultEmulatorClientHelper.GetSecretClient(_keyVault);
     // The emulator can report ready before its host-mapped port accepts connections (seen as
-    // connection-refused on GitHub Actions runners) - retry the first call until it's truly up.
-    await WaitUntilSucceedsAsync(async () => await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
-        "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True"));
+    // connection-refused on GitHub Actions runners) - retry the first call until it's truly up,
+    // and surface the emulator's own logs if it never comes up so CI failures are diagnosable.
+    try
+    {
+      await WaitUntilSucceedsAsync(async () => await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BikeBuilderDb",
+          "Server=sql,1433;Database=BikeBuilderDb;User Id=sa;Password=BikeBuilder!Test2026;TrustServerCertificate=True"),
+          timeoutSeconds: 180);
+    }
+    catch (InvalidOperationException ex)
+    {
+      var diagnostics = await CaptureDockerDiagnosticsAsync(_keyVault.Id);
+      throw new InvalidOperationException($"Key Vault emulator never became reachable.\n{diagnostics}", ex);
+    }
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--BlobStorage",
         "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;");
     await keyVaultSecretClient.SetSecretAsync("ConnectionStrings--ServiceBus", ServiceBusConnectionString);
@@ -383,6 +393,38 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
                 "--no-first-run",
             ],
     });
+  }
+
+  // Best-effort container state + logs for failure messages; never throws.
+  static async Task<string> CaptureDockerDiagnosticsAsync(string containerId)
+  {
+    try
+    {
+      using var state = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", $"inspect --format {{{{.State.Status}}}}/{{{{.State.ExitCode}}}} {containerId}")
+      {
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+      })!;
+      var stateText = (await state.StandardOutput.ReadToEndAsync()).Trim();
+      await state.WaitForExitAsync();
+
+      using var logs = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("docker", $"logs --tail 100 {containerId}")
+      {
+        RedirectStandardError = true,
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+      })!;
+      var stdout = await logs.StandardOutput.ReadToEndAsync();
+      var stderr = await logs.StandardError.ReadToEndAsync();
+      await logs.WaitForExitAsync();
+
+      return $"Container state: {stateText}\nContainer logs:\n{stdout}\n{stderr}";
+    }
+    catch (Exception ex)
+    {
+      return $"(failed to capture container diagnostics: {ex.Message})";
+    }
   }
 
   static async Task RunDockerCommandAsync(string arguments)
