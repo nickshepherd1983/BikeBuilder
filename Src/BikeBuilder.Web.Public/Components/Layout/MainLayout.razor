@@ -10,10 +10,16 @@
         <MudText Typo="Typo.h6" Class="ml-2">BikeBuilder — Live</MudText>
     </MudAppBar>
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
+        @* Full-width content; pb-16 keeps it clear of the fixed footer bar *@
+        <MudContainer MaxWidth="MaxWidth.False" Class="my-6 pb-16">
             @Body
         </MudContainer>
     </MudMainContent>
+    <MudAppBar Bottom="true" Fixed="true" Dense="true" Elevation="1">
+        <MudLink Href="/" Class="mr-6" Style="color: white;">Home</MudLink>
+        <MudLink Href="/about" Class="mr-6" Style="color: white;">About Us</MudLink>
+        <MudLink Href="https://github.com/nickshepherd1983/BikeBuilder" Target="_blank" Style="color: white;">GitHub</MudLink>
+    </MudAppBar>
 </MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>

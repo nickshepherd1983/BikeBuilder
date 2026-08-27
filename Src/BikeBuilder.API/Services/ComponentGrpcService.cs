@@ -9,14 +9,23 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     if (!string.IsNullOrWhiteSpace(request.Search))
       query = query.Where(c => c.Name.Contains(request.Search) || c.Sku.Contains(request.Search));
 
+    var totalCount = await query.CountAsync(context.CancellationToken);
+
     query = query.OrderBy(c => c.Name);
 
-    if (request.Limit > 0)
+    if (request.Page > 0)
+    {
+      var pageSize = Math.Clamp(request.Limit <= 0 ? 20 : request.Limit, 1, 100);
+      query = query.Skip((request.Page - 1) * pageSize).Take(pageSize);
+    }
+    else if (request.Limit > 0)
+    {
       query = query.Take(request.Limit);
+    }
 
     var components = await query.ToListAsync(context.CancellationToken);
 
-    var response = new ListComponentsResponse();
+    var response = new ListComponentsResponse { TotalCount = totalCount };
     response.Components.AddRange(components.Select(ToMessage));
     return response;
   }

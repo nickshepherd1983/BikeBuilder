@@ -33,11 +33,13 @@ message ComponentMessage {
 
 message ListComponentsRequest {
   string search = 1; // optional name/SKU filter; empty returns everything
-  int32 limit = 2;   // optional cap on results; 0 means no cap
+  int32 limit = 2;   // page size when page > 0, otherwise a plain cap; 0 means default/no cap
+  int32 page = 3;    // 1-based; 0 means not paged (autocomplete/legacy callers)
 }
 
 message ListComponentsResponse {
   repeated ComponentMessage components = 1;
+  int32 total_count = 2; // count after the search filter, before paging
 }
 
 message GetComponentRequest {

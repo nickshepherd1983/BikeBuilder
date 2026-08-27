@@ -13,19 +13,22 @@ public partial class Components(
   // Roughly double the dialog's natural content width: stretch it to MaxWidth.Small (600px).
   static readonly DialogOptions ComponentDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
-  List<ComponentMessage>? _components;
+  MudTable<ComponentMessage>? _table;
   bool _isUploading;
 
-  protected override async Task OnInitializedAsync()
+  async Task<TableData<ComponentMessage>> LoadComponentsAsync(TableState state, CancellationToken cancellationToken)
   {
-    await LoadComponents();
+    // MudTable pages are 0-based; the RPC is 1-based, with Limit acting as the page size.
+    var response = await _componentClient.ListComponentsAsync(new ListComponentsRequest
+    {
+      Page = state.Page + 1,
+      Limit = state.PageSize
+    }, cancellationToken: cancellationToken);
+
+    return new TableData<ComponentMessage> { Items = response.Components, TotalItems = response.TotalCount };
   }
 
-  async Task LoadComponents()
-  {
-    var response = await _componentClient.ListComponentsAsync(new ListComponentsRequest());
-    _components = response.Components.ToList();
-  }
+  async Task ReloadComponents() => await _table!.ReloadServerData();
 
   static string FormatCost(string cost) =>
       decimal.TryParse(cost, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)
@@ -58,7 +61,7 @@ public partial class Components(
         Manufacturer = manufacturer
       });
       _snackbar.Add("Component added.", Severity.Success);
-      await LoadComponents();
+      await ReloadComponents();
     }
     catch (RpcException ex)
     {
@@ -98,7 +101,7 @@ public partial class Components(
         Manufacturer = manufacturer
       });
       _snackbar.Add("Component updated.", Severity.Success);
-      await LoadComponents();
+      await ReloadComponents();
     }
     catch (RpcException ex)
     {
@@ -120,7 +123,7 @@ public partial class Components(
     {
       await _componentClient.DeleteComponentAsync(new DeleteComponentRequest { Id = component.Id });
       _snackbar.Add("Component deleted.", Severity.Success);
-      await LoadComponents();
+      await ReloadComponents();
     }
     catch (RpcException ex)
     {
@@ -148,7 +151,7 @@ public partial class Components(
       }
 
       _snackbar.Add("Image uploaded.", Severity.Success);
-      await LoadComponents();
+      await ReloadComponents();
     }
     catch (IOException)
     {
@@ -178,6 +181,6 @@ public partial class Components(
     }
 
     _snackbar.Add("Image deleted.", Severity.Success);
-    await LoadComponents();
+    await ReloadComponents();
   }
 }
