@@ -103,7 +103,7 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
     db.BikeBuildComponents.Add(bikeBuildComponent);
     await db.SaveChangesAsync(context.CancellationToken);
 
-    return ToMessage(bikeBuildComponent, component.Name);
+    return ToMessage(bikeBuildComponent, component);
   }
 
   public override async Task<BikeBuildComponentMessage> UpdateBikeBuildComponent(UpdateBikeBuildComponentRequest request, ServerCallContext context)
@@ -120,7 +120,7 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
 
     await db.SaveChangesAsync(context.CancellationToken);
 
-    return ToMessage(bikeBuildComponent, component.Name);
+    return ToMessage(bikeBuildComponent, component);
   }
 
   public override async Task<RemoveBikeBuildComponentResponse> RemoveBikeBuildComponent(RemoveBikeBuildComponentRequest request, ServerCallContext context)
@@ -156,18 +156,19 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
     };
 
     if (includeComponents)
-      message.Components.AddRange(bikeBuild.BikeBuildComponents.Select(x => ToMessage(x, x.Component.Name)));
+      message.Components.AddRange(bikeBuild.BikeBuildComponents.Select(x => ToMessage(x, x.Component)));
 
     return message;
   }
 
-  static BikeBuildComponentMessage ToMessage(Data.Entities.BikeBuildComponent bikeBuildComponent, string componentName) => new()
+  static BikeBuildComponentMessage ToMessage(Data.Entities.BikeBuildComponent bikeBuildComponent, Data.Entities.Component component) => new()
   {
     Id = bikeBuildComponent.Id,
     BikeBuildId = bikeBuildComponent.BikeBuildId,
     ComponentId = bikeBuildComponent.ComponentId,
-    ComponentName = componentName,
+    ComponentName = component.Name,
     Quantity = bikeBuildComponent.Quantity,
-    Date = Timestamp.FromDateTimeOffset(bikeBuildComponent.Date)
+    Date = Timestamp.FromDateTimeOffset(bikeBuildComponent.Date),
+    ComponentInformationJson = ComponentInformationSerializer.Serialize(component.Information)
   };
 }

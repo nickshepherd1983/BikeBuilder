@@ -34,6 +34,7 @@ message BikeBuildComponentMessage {
   string component_name = 4;
   int32 quantity = 5;
   google.protobuf.Timestamp date = 6;
+  string component_information_json = 7; // polymorphic ComponentInformation JSON; "" = none
 }
 
 message ListBikeBuildsRequest {

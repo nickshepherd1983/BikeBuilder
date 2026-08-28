@@ -30,6 +30,22 @@ public static class ComponentInformationSerializer
           ? null
           : JsonSerializer.Deserialize<ComponentInformation>(json, Options);
 
+  // Lenient variant for reading stored or displayed data: rows persisted before an
+  // invariant was introduced (or tightened) must degrade to "no information" rather than
+  // crash a whole grid. Incoming requests should keep using the strict Deserialize so bad
+  // payloads are rejected.
+  public static ComponentInformation? TryDeserialize(string? json)
+  {
+    try
+    {
+      return Deserialize(json);
+    }
+    catch (JsonException)
+    {
+      return null;
+    }
+  }
+
   static void AddPolymorphism(JsonTypeInfo typeInfo)
   {
     if (typeInfo.Type != typeof(ComponentInformation))

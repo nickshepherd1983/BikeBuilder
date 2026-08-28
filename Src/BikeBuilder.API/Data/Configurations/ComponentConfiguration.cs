@@ -32,11 +32,13 @@ public class ComponentConfiguration : IEntityTypeConfiguration<Component>
     // would never see an in-place edit. The native json column type (SQL Server 2025+)
     // gets storage-level validation and binary storage; the converter still just reads and
     // writes the serialized string.
+    // TryDeserialize on the read side: a stored row that predates a tightened invariant
+    // reads as null instead of failing every query that materializes it.
     builder.Property(c => c.Information)
         .HasColumnType("json")
         .HasConversion(
             information => ComponentInformationSerializer.Serialize(information),
-            json => ComponentInformationSerializer.Deserialize(json),
+            json => ComponentInformationSerializer.TryDeserialize(json),
             new ValueComparer<ComponentInformation>(
                 (a, b) => ComponentInformationSerializer.Serialize(a) == ComponentInformationSerializer.Serialize(b),
                 v => ComponentInformationSerializer.Serialize(v).GetHashCode(),

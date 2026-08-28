@@ -7,4 +7,12 @@ public class TireComponentInformation : ComponentInformation
   // Nullable = not yet chosen; the editor marks both required.
   public WheelSize? Size { get; set; }
   public TireWidthInches? WidthInches { get; set; }
+
+  public override IEnumerable<KeyValuePair<string, string>> GetDisplayValues()
+  {
+    if (Size is not null)
+      yield return new("Size", $"{Size}\"");
+    if (WidthInches is not null)
+      yield return new("Width", $"{WidthInches}\"");
+  }
 }

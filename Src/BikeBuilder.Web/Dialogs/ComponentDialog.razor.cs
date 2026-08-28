@@ -31,7 +31,7 @@ public partial class ComponentDialog
     _description = Description;
     _sku = Sku;
     _manufacturer = Manufacturer;
-    _information = ComponentInformationSerializer.Deserialize(ComponentInformationJson);
+    _information = ComponentInformationSerializer.TryDeserialize(ComponentInformationJson);
     _informationType = _information?.GetType();
   }
 

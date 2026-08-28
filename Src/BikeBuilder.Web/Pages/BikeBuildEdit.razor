@@ -44,12 +44,14 @@ else
     <MudTable Items="@_bikeBuild.Components" Hover="true" Striped="true">
         <HeaderContent>
             <MudTh>Component</MudTh>
+            <MudTh>Information</MudTh>
             <MudTh>Quantity</MudTh>
             <MudTh>Date</MudTh>
             <MudTh Style="width: 1%;"></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Component">@context.ComponentName</MudTd>
+            <MudTd DataLabel="Information"><ComponentInformationDisplay Json="@context.ComponentInformationJson" /></MudTd>
             <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
             <MudTd DataLabel="Date">@context.Date.ToDateTimeOffset().ToString("d")</MudTd>
             <MudTd DataLabel="">

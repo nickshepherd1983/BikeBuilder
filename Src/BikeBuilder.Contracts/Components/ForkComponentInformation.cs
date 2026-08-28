@@ -5,4 +5,9 @@ public class ForkComponentInformation : ComponentInformation
   public override string DisplayName => "Fork";
 
   public TravelMm TravelMm { get; set; } = new(150);
+
+  public override IEnumerable<KeyValuePair<string, string>> GetDisplayValues()
+  {
+    yield return new("Travel", $"{TravelMm}mm");
+  }
 }

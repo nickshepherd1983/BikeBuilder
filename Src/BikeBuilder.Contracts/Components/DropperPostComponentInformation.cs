@@ -6,4 +6,10 @@ public class DropperPostComponentInformation : ComponentInformation
 
   public TravelMm TravelMm { get; set; } = new(150);
   public SeatpostDiameterMm DiameterMm { get; set; } = new(31.6);
+
+  public override IEnumerable<KeyValuePair<string, string>> GetDisplayValues()
+  {
+    yield return new("Travel", $"{TravelMm}mm");
+    yield return new("Diameter", $"{DiameterMm}mm");
+  }
 }

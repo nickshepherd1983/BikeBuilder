@@ -59,6 +59,9 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
         informationType: "Tire",
         informationSelects: new Dictionary<string, string> { ["Size"] = "29", ["Width (inches)"] = "2.4" });
 
+    // The grid's Information column renders the type badge + spec chips.
+    Assert.True(await components.RowContainsAsync(tireName, "Tire", "Size: 29", "Width: 2.4"));
+
     var tireDialog = await components.OpenEditDialogAsync(tireName);
     Assert.Contains("Tire", await components.GetInformationFieldTextAsync(tireDialog, "Information Type"));
     Assert.Contains("29", await components.GetInformationFieldTextAsync(tireDialog, "Size"));
