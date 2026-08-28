@@ -1,4 +1,5 @@
-﻿using BikeBuilder.Contracts.Events;
+﻿using System.Diagnostics;
+using BikeBuilder.Contracts.Events;
 using BikeBuilder.Contracts.Messaging;
 
 namespace BikeBuilder.Web.Public.Services;
@@ -8,6 +9,10 @@ public class ServiceBusListenerBackgroundService(
     IHubContext<NotificationHub> hubContext,
     ILogger<ServiceBusListenerBackgroundService> logger) : BackgroundService
 {
+  // IHubContext broadcasts produce no built-in span, so this makes the trace visibly end at
+  // "broadcast to SignalR clients", parented under the SDK's ambient ProcessMessage activity.
+  static readonly ActivitySource TraceSource = new("BikeBuilder.Web.Public");
+
   ServiceBusProcessor? _processor;
 
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -39,7 +44,11 @@ public class ServiceBusListenerBackgroundService(
     };
 
     if (text is not null)
+    {
+      using var activity = TraceSource.StartActivity("NotificationHub broadcast");
+      activity?.SetTag("bikebuilder.message_type", messageType);
       await hubContext.Clients.All.SendAsync("ReceiveNotification", text, args.CancellationToken);
+    }
 
     await args.CompleteMessageAsync(args.Message, args.CancellationToken);
   }

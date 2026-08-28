@@ -2,11 +2,37 @@
 using Azure.Core.Pipeline;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
+// Azure SDK messaging tracing (Service Bus send spans + traceparent stamping on the
+// RatingCreated events) is still behind this experimental switch. Must be set before any
+// ServiceBusClient is constructed.
+AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);
 
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
+
+builder.Services.AddOpenTelemetry()
+    .UseFunctionsWorkerDefaults() // correlates worker spans with the Functions host's invocation spans
+    .ConfigureResource(resource => resource.AddService("bikebuilder-ratings"))
+    .WithTracing(tracing => tracing
+        // Deliberately no AddAspNetCoreInstrumentation: the Functions host already emits the
+        // request/invocation span and adding it in the worker double-reports every request.
+        .AddHttpClientInstrumentation() // Cosmos gateway HTTP + JWKS fetches
+        .AddSource("Azure.*")           // Azure.Cosmos.Operation + Service Bus send
+        .AddOtlpExporter(options =>
+        {
+          // The standard OTEL_EXPORTER_OTLP_ENDPOINT env var and its http://localhost:4317
+          // default are honored automatically; this key is an optional appsettings override.
+          var endpoint = builder.Configuration["Otel:OtlpEndpoint"];
+          if (endpoint is not null)
+            options.Endpoint = new Uri(endpoint);
+        }));
 
 var vaultUri = builder.Configuration["KeyVault:VaultUri"]
     ?? throw new InvalidOperationException("KeyVault:VaultUri is not configured.");
@@ -44,6 +70,9 @@ builder.Services.AddSingleton(_ => new CosmosClient(
       // camelCase documents, so the stored JSON matches the REST API's shape ("id",
       // "bikeBuildId", ...) and the /bikeBuildId partition key path.
       UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web),
+      // Explicit opt-in: emits "Azure.Cosmos.Operation" activities for container operations
+      // (the default has flip-flopped between SDK builds, so be deterministic).
+      CosmosClientTelemetryOptions = new CosmosClientTelemetryOptions { DisableDistributedTracing = false },
       // True only against the emulator's self-signed cert; never set in real Azure.
       HttpClientFactory = builder.Configuration.GetValue("Cosmos:DisableServerCertificateValidation", false)
           ? () => new HttpClient(new HttpClientHandler

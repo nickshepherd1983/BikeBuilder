@@ -22,6 +22,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   public const int WebPublicHostPort = 18300;
   public const int OidcHostPort = 18400;
   public const int RatingsHostPort = 18500;
+  public const int JaegerUiHostPort = 18600;
 
   public const string OidcTestUsername = "testuser";
   public const string OidcTestPassword = "password";
@@ -100,6 +101,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
   IContainer _api = null!;
   IContainer _web = null!;
   IContainer _webPublic = null!;
+  IContainer _jaeger = null!;
   IPlaywright _playwright = null!;
 
   public async Task InitializeAsync()
@@ -227,7 +229,17 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
             .UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/ready")))
         .Build();
 
-    await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync(), _oidcMock.StartAsync(), _cosmos.StartAsync());
+    // Jaeger v2 all-in-one collects OTLP traces from api/ratings/web-public in-network; the
+    // UI is published on a fixed host port so a running smoke test's traces can be inspected
+    // live at http://localhost:18600. Storage is in-memory - traces die with the fixture.
+    _jaeger = new ContainerBuilder("jaegertracing/jaeger:2.20.0")
+        .WithNetwork(_network)
+        .WithNetworkAliases("jaeger")
+        .WithPortBinding(JaegerUiHostPort, 16686)
+        .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(16686).ForPath("/")))
+        .Build();
+
+    await Task.WhenAll(_sql.StartAsync(), _azurite.StartAsync(), _serviceBusSql.StartAsync(), _keyVault.StartAsync(), _oidcMock.StartAsync(), _cosmos.StartAsync(), _jaeger.StartAsync());
     await _serviceBus.StartAsync();
 
     // AzureKeyVaultEmulatorContainer doesn't expose Testcontainers' network-attachment API
@@ -348,6 +360,8 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithEnvironment("Auth0__Authority", $"http://{OidcNetworkAlias}")
         .WithEnvironment("Auth0__Audience", OidcAudience)
         .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
+        .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317")
+        .WithEnvironment("OTEL_SERVICE_NAME", "bikebuilder-api")
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
         .Build();
 
@@ -365,6 +379,8 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
         .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
         .WithEnvironment("Cosmos__DisableServerCertificateValidation", "true")
+        .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317")
+        .WithEnvironment("OTEL_SERVICE_NAME", "bikebuilder-ratings")
         .WithWaitStrategy(Wait.ForUnixContainer()
             .UntilHttpRequestIsSucceeded(
                 r => r.ForPort(80).ForPath("/api/bikebuilds/warmup/ratings"),
@@ -388,6 +404,8 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithNetworkAliases("web-public")
         .WithPortBinding(WebPublicHostPort, 8080)
         .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
+        .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317")
+        .WithEnvironment("OTEL_SERVICE_NAME", "bikebuilder-web-public")
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
         .Build();
 #pragma warning restore CS0618
@@ -593,6 +611,9 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
     if (_cosmos is not null)
       await _cosmos.DisposeAsync();
+
+    if (_jaeger is not null)
+      await _jaeger.DisposeAsync();
 
     if (_azurite is not null)
       await _azurite.DisposeAsync();

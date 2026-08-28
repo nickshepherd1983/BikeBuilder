@@ -19,7 +19,7 @@ sealed class CorsMiddleware(IConfiguration configuration) : IFunctionsWorkerMidd
         http.Response.Headers.AccessControlAllowOrigin = origin;
         http.Response.Headers.Vary = "Origin";
         http.Response.Headers.AccessControlAllowMethods = "GET, POST, OPTIONS";
-        http.Response.Headers.AccessControlAllowHeaders = "authorization, content-type";
+        http.Response.Headers.AccessControlAllowHeaders = "authorization, content-type, traceparent, tracestate";
         http.Response.Headers.AccessControlMaxAge = "86400";
       }
     }

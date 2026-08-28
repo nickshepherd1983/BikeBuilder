@@ -8,6 +8,8 @@
     "Auth0__Audience": "https://bikebuilder-api",
     "WebAppOrigins__0": "https://localhost:7200",
     "WebAppOrigins__1": "http://localhost:7201",
-    "Cosmos__DisableServerCertificateValidation": "true"
+    "Cosmos__DisableServerCertificateValidation": "true",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
+    "OTEL_SERVICE_NAME": "bikebuilder-ratings"
   }
 }

@@ -58,6 +58,14 @@ services:
     environment:
       Persist: "true"
 
+  jaeger:
+    # v2 all-in-one with in-memory storage - traces reset with the container, fine for dev.
+    image: jaegertracing/jaeger:2.20.0
+    ports:
+      - "16686:16686" # UI: http://localhost:16686
+      - "4317:4317"   # OTLP gRPC (the .NET OTLP exporter default endpoint)
+      - "4318:4318"   # OTLP HTTP
+
 volumes:
   sql-data:
   azurite-data:

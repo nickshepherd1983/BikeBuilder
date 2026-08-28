@@ -3,6 +3,15 @@ using Azure.Core.Pipeline;
 using Azure.Security.KeyVault.Secrets;
 using BikeBuilder.API.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+// Not global usings: OpenTelemetry.Trace's Status/StatusCode collide with Grpc.Core's in
+// the gRPC services.
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
+// Azure SDK messaging tracing (Service Bus send/process spans + traceparent stamping on
+// messages) is still behind this experimental switch - without it the trace fragments at
+// the queue. Must be set before any ServiceBusClient is constructed.
+AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +75,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
       options.TokenValidationParameters.NameClaimType = "sub";
     });
 builder.Services.AddAuthorization();
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("bikebuilder-api"))
+    .WithTracing(tracing => tracing
+        // "/" is the container health probe - not worth a trace per poll.
+        .AddAspNetCoreInstrumentation(options => options.Filter = context => context.Request.Path != "/")
+        .AddHttpClientInstrumentation()
+        .AddSqlClientInstrumentation() // stable-semconv default already records db.query.text
+        .AddSource("Azure.*") // Blob Storage + Service Bus (+ any future Azure SDK client)
+        .AddOtlpExporter(options =>
+        {
+          // The standard OTEL_EXPORTER_OTLP_ENDPOINT env var and its http://localhost:4317
+          // default are honored automatically; this key is an optional appsettings override.
+          var endpoint = builder.Configuration["Otel:OtlpEndpoint"];
+          if (endpoint is not null)
+            options.Endpoint = new Uri(endpoint);
+        }));
 
 var app = builder.Build();
 

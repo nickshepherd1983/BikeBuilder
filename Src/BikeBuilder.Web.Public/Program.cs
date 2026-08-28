@@ -4,6 +4,13 @@ using Azure.Security.KeyVault.Secrets;
 using BikeBuilder.Web.Public.Components;
 using BikeBuilder.Web.Public.Services;
 using MudBlazor.Services;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
+// Azure SDK messaging tracing (the ServiceBusProcessor.ProcessMessage span that continues
+// the API's trace into this app) is still behind this experimental switch. Must be set
+// before any ServiceBusClient is constructed.
+AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +39,23 @@ var serviceBusConnectionString = (await secretClient.GetSecretAsync("ConnectionS
 
 builder.Services.AddSingleton(_ => new ServiceBusClient(serviceBusConnectionString));
 builder.Services.AddHostedService<ServiceBusListenerBackgroundService>();
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("bikebuilder-web-public"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddSource("Azure.*")                             // ServiceBusProcessor.ProcessMessage
+        .AddSource("BikeBuilder.Web.Public")              // custom broadcast span in the listener
+        .AddSource("Microsoft.AspNetCore.SignalR.Server") // client-invoked hub methods, if any appear
+        .AddOtlpExporter(options =>
+        {
+          // The standard OTEL_EXPORTER_OTLP_ENDPOINT env var and its http://localhost:4317
+          // default are honored automatically; this key is an optional appsettings override.
+          var endpoint = builder.Configuration["Otel:OtlpEndpoint"];
+          if (endpoint is not null)
+            options.Endpoint = new Uri(endpoint);
+        }));
 
 var app = builder.Build();
 

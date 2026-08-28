@@ -26,7 +26,7 @@ land in real time on a public site.
 Local development uses Docker for the backing services:
 
 ```powershell
-docker compose up -d      # SQL Server, Azurite, Service Bus emulator, Key Vault emulator, Cosmos emulator
+docker compose up -d      # SQL Server, Azurite, Service Bus emulator, Key Vault emulator, Cosmos emulator, Jaeger
 ```
 
 Then run the apps from Visual Studio or `dotnet run` (the Functions app runs with `func start`).
@@ -39,6 +39,17 @@ To fill the dev stack with realistic sample data (1000+ components, 20 bike buil
 dotnet run --project Src/BikeBuilder.DataSeeder             # refuses if components already exist
 dotnet run --project Src/BikeBuilder.DataSeeder -- --reset  # wipes components/builds/ratings first
 ```
+
+## Tracing
+
+Every server app (API, Web.Public, Ratings) exports OpenTelemetry traces over OTLP to
+`localhost:4317` by default — the Jaeger container in docker-compose. Open the Jaeger UI at
+http://localhost:16686 to follow a single request across API → SQL/Blob → Service Bus →
+Web.Public → SignalR broadcast (the Service Bus consumer may appear as a linked trace
+reference rather than a nested span — that's the messaging convention, click through it).
+The apps run fine with Jaeger stopped: spans are dropped quietly. Jaeger's storage is
+in-memory, so traces reset with the container. During integration tests a dedicated Jaeger
+runs at http://localhost:18600 while the stack is alive.
 
 ## Tests
 
