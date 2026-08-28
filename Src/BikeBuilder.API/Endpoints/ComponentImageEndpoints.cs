@@ -2,7 +2,7 @@
 
 public static class ComponentImageEndpoints
 {
-  static readonly Dictionary<string, string> AllowedTypes = new(StringComparer.OrdinalIgnoreCase)
+  static readonly Dictionary<string, string> _allowedTypes = new(StringComparer.OrdinalIgnoreCase)
   {
     [".jpg"] = "image/jpeg",
     [".jpeg"] = "image/jpeg",
@@ -18,7 +18,7 @@ public static class ComponentImageEndpoints
         BikeBuilderDbContext db, ComponentImageStorageService storage, CancellationToken ct) =>
     {
       var extension = Path.GetExtension(file.FileName);
-      if (!AllowedTypes.TryGetValue(extension, out var contentType))
+      if (!_allowedTypes.TryGetValue(extension, out var contentType))
         return Results.BadRequest("Only .jpg, .jpeg, .png, and .gif files are allowed.");
 
       if (file.Length is 0 or > MaxFileSize)

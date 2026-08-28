@@ -8,7 +8,7 @@ public partial class BikeBuilds(
     NavigationManager _navigation)
 {
   // Same width treatment as the Components page's component dialog.
-  static readonly DialogOptions BikeBuildDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+  static readonly DialogOptions _bikeBuildDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
   MudTable<BikeBuildMessage> _table = null!;
   Dictionary<int, RatingSummaryDto>? _ratingSummaries;
@@ -68,7 +68,7 @@ public partial class BikeBuilds(
       { x => x.Title, "Create Bike Build" }
     };
 
-    var dialog = await _dialogService.ShowAsync<BikeBuildDialog>("Create Bike Build", parameters, BikeBuildDialogOptions);
+    var dialog = await _dialogService.ShowAsync<BikeBuildDialog>("Create Bike Build", parameters, _bikeBuildDialogOptions);
     var result = await dialog.Result;
 
     if (result is null || result.Canceled)

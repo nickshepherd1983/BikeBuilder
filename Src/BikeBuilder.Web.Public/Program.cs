@@ -87,7 +87,7 @@ namespace BikeBuilder.Web.Public
   // that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
   sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
   {
-    static readonly HttpClient Client = new(new HttpClientHandler
+    static readonly HttpClient _client = new(new HttpClientHandler
     {
       ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
     });
@@ -97,7 +97,7 @@ namespace BikeBuilder.Web.Public
 
     public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
-      var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
+      var response = await _client.GetAsync($"{vaultUri}/token", cancellationToken);
       response.EnsureSuccessStatusCode();
       var token = await response.Content.ReadAsStringAsync(cancellationToken);
       return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));

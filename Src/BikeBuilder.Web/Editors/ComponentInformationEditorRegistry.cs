@@ -9,13 +9,13 @@ public static class ComponentInformationEditorRegistry
       [.. ComponentInformationSerializer.KnownTypes
           .Select(t => (Type: t, ((ComponentInformation)Activator.CreateInstance(t)!).DisplayName))];
 
-  static readonly Dictionary<Type, Type> Editors = BuildEditorMap();
+  static readonly Dictionary<Type, Type> _editors = BuildEditorMap();
 
   public static string DisplayNameFor(Type type) =>
       KnownTypes.First(entry => entry.Type == type).DisplayName;
 
   public static Type EditorFor(Type informationType) =>
-      Editors.TryGetValue(informationType, out var editor) ? editor : typeof(DefaultComponentInformationEditor);
+      _editors.TryGetValue(informationType, out var editor) ? editor : typeof(DefaultComponentInformationEditor);
 
   static Dictionary<Type, Type> BuildEditorMap()
   {

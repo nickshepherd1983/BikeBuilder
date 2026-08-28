@@ -74,13 +74,13 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 
   const int KeyVaultContainerPort = 4997;
   const string KeyVaultNetworkAlias = "keyvault-emulator";
-  static readonly string KeyVaultVaultUri = $"https://{KeyVaultNetworkAlias}:{KeyVaultContainerPort}";
+  static readonly string _keyVaultVaultUri = $"https://{KeyVaultNetworkAlias}:{KeyVaultContainerPort}";
 
   // The issuer the browser uses must equal the token's iss claim. IdentityServer pins the
   // issuer via IssuerUri but generates the discovery document's *endpoint* URLs from each
   // request's host, so the browser (via the host port binding) and the API (via the
   // "oidc-mock" network alias) can both reach the stub while agreeing on this one issuer.
-  static readonly string OidcIssuerUri = $"http://127.0.0.1:{OidcHostPort}";
+  static readonly string _oidcIssuerUri = $"http://127.0.0.1:{OidcHostPort}";
   const string OidcNetworkAlias = "oidc-mock";
   const string OidcAudience = "bikebuilder-api";
   const string OidcClientId = "bikebuilder-web";
@@ -175,7 +175,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         // browser would return to /connect/authorize with no session, looping back to the
         // login form forever.
         .WithEnvironment("SERVER_OPTIONS_INLINE",
-            $$$"""{"IssuerUri":"{{{OidcIssuerUri}}}","AccessTokenJwtType":"JWT","Authentication":{"CookieSameSiteMode":"Lax"}}""")
+            $$$"""{"IssuerUri":"{{{_oidcIssuerUri}}}","AccessTokenJwtType":"JWT","Authentication":{"CookieSameSiteMode":"Lax"}}""")
         .WithEnvironment("API_SCOPES_INLINE",
             $$"""[{"Name":"{{OidcAudience}}"}]""")
         // UserClaims: puts the user's name claim into access tokens for this API, the way a
@@ -241,7 +241,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     // AzureKeyVaultEmulatorContainer doesn't expose Testcontainers' network-attachment API
     // (WithNetwork/WithNetworkAliases) - it's a standalone wrapper, not a DotNet.Testcontainers
     // IContainer. Join it to _network after the fact via the Docker CLI using its container Id,
-    // so _api/_webPublic (already on _network) can reach it at KeyVaultVaultUri.
+    // so _api/_webPublic (already on _network) can reach it at _keyVaultVaultUri.
     await RunDockerCommandAsync($"network connect {_network.Name} {_keyVault.Id} --alias {KeyVaultNetworkAlias}");
 
     // Seed the secrets the API/Web.Public containers will fetch for themselves at startup,
@@ -318,7 +318,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithDockerfileDirectory(CommonDirectoryPath.GetSolutionDirectory(), "Src/BikeBuilder.Web")
         .WithDockerfile("Dockerfile")
         .WithBuildArgument("API_BASE_ADDRESS", ApiBaseAddress)
-        .WithBuildArgument("AUTH0_AUTHORITY", OidcIssuerUri)
+        .WithBuildArgument("AUTH0_AUTHORITY", _oidcIssuerUri)
         .WithBuildArgument("AUTH0_CLIENT_ID", OidcClientId)
         .WithBuildArgument("AUTH0_AUDIENCE", OidcAudience)
         // The stub mints the aud claim from requested API scopes, not Auth0's audience param.
@@ -349,10 +349,10 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithNetwork(_network)
         .WithNetworkAliases("api")
         .WithPortBinding(ApiHostPort, 8080)
-        .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
+        .WithEnvironment("KeyVault__VaultUri", _keyVaultVaultUri)
         .WithEnvironment("WebAppOrigins__0", WebBaseAddress)
         // The API fetches discovery/JWKS in-network via the alias; the discovery document
-        // still reports OidcIssuerUri as issuer, which is what token iss claims carry.
+        // still reports _oidcIssuerUri as issuer, which is what token iss claims carry.
         .WithEnvironment("Auth0__Authority", $"http://{OidcNetworkAlias}")
         .WithEnvironment("Auth0__Audience", OidcAudience)
         .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
@@ -369,7 +369,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithNetwork(_network)
         .WithNetworkAliases("ratings")
         .WithPortBinding(RatingsHostPort, 80)
-        .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
+        .WithEnvironment("KeyVault__VaultUri", _keyVaultVaultUri)
         .WithEnvironment("Auth0__Authority", $"http://{OidcNetworkAlias}")
         .WithEnvironment("Auth0__Audience", OidcAudience)
         .WithEnvironment("Auth0__RequireHttpsMetadata", "false")
@@ -399,7 +399,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
         .WithNetwork(_network)
         .WithNetworkAliases("web-public")
         .WithPortBinding(WebPublicHostPort, 8080)
-        .WithEnvironment("KeyVault__VaultUri", KeyVaultVaultUri)
+        .WithEnvironment("KeyVault__VaultUri", _keyVaultVaultUri)
         .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317")
         .WithEnvironment("OTEL_SERVICE_NAME", "bikebuilder-web-public")
         .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8080).ForPath("/")))
@@ -415,7 +415,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     await WaitUntilReachableAsync(ApiBaseAddress);
     await WaitUntilReachableAsync(WebBaseAddress);
     await WaitUntilReachableAsync(WebPublicBaseAddress);
-    await WaitUntilReachableAsync(OidcIssuerUri);
+    await WaitUntilReachableAsync(_oidcIssuerUri);
     await WaitUntilReachableAsync($"{RatingsBaseAddress}/api/bikebuilds/warmup/ratings");
 
     _playwright = await Playwright.CreateAsync();
@@ -652,7 +652,7 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
 // Same copy as in BikeBuilder.API/Program.cs.
 sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
 {
-  static readonly HttpClient Client = new(new HttpClientHandler
+  static readonly HttpClient _client = new(new HttpClientHandler
   {
     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
   });
@@ -662,7 +662,7 @@ sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
 
   public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
   {
-    var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
+    var response = await _client.GetAsync($"{vaultUri}/token", cancellationToken);
     response.EnsureSuccessStatusCode();
     var token = await response.Content.ReadAsStringAsync(cancellationToken);
     return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));

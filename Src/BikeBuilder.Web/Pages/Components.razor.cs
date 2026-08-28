@@ -8,10 +8,10 @@ public partial class Components(
     IDialogService _dialogService,
     ISnackbar _snackbar)
 {
-  static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".gif"];
+  static readonly string[] _allowedImageExtensions = [".jpg", ".jpeg", ".png", ".gif"];
 
   // Roughly double the dialog's natural content width: stretch it to MaxWidth.Small (600px).
-  static readonly DialogOptions ComponentDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+  static readonly DialogOptions _componentDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
   MudTable<ComponentMessage> _table = null!;
   bool _isUploading;
@@ -42,7 +42,7 @@ public partial class Components(
       { x => x.Title, "Add Component" }
     };
 
-    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Add Component", parameters, ComponentDialogOptions);
+    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Add Component", parameters, _componentDialogOptions);
     var result = await dialog.Result;
 
     if (result is null || result.Canceled)
@@ -83,7 +83,7 @@ public partial class Components(
       { x => x.ComponentInformationJson, component.ComponentInformationJson }
     };
 
-    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Edit Component", parameters, ComponentDialogOptions);
+    var dialog = await _dialogService.ShowAsync<ComponentDialog>("Edit Component", parameters, _componentDialogOptions);
     var result = await dialog.Result;
 
     if (result is null || result.Canceled)
@@ -137,7 +137,7 @@ public partial class Components(
   async Task UploadImage(ComponentMessage component, IBrowserFile file)
   {
     var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-    if (!AllowedImageExtensions.Contains(extension))
+    if (!_allowedImageExtensions.Contains(extension))
     {
       _snackbar.Add("Only .jpg, .png, and .gif files are supported.", Severity.Error);
       return;

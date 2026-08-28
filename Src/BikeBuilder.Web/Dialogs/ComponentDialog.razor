@@ -7,7 +7,7 @@
                           Validation="@(new Func<string, string?>(ValidateCost))" Class="mt-3" Adornment="Adornment.Start" AdornmentText="$" />
             <MudTextField @bind-Value="_sku" Label="SKU" Class="mt-3" />
             <MudSelect T="Manufacturer" @bind-Value="_manufacturer" Label="Manufacturer" Class="mt-3">
-                @foreach (var manufacturer in Manufacturers)
+                @foreach (var manufacturer in _manufacturers)
                 {
                     <MudSelectItem T="Manufacturer" Value="manufacturer">@manufacturer</MudSelectItem>
                 }

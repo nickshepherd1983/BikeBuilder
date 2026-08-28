@@ -12,7 +12,7 @@ public partial class ComponentDialog
   [Parameter] public Manufacturer Manufacturer { get; set; } = Manufacturer.Other;
   [Parameter] public string ComponentInformationJson { get; set; } = string.Empty;
 
-  static readonly Manufacturer[] Manufacturers =
+  static readonly Manufacturer[] _manufacturers =
       [Manufacturer.Sram, Manufacturer.Shimano, Manufacturer.Hope, Manufacturer.Other];
 
   MudForm _form = null!;

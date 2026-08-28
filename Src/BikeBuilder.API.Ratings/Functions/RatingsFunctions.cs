@@ -6,7 +6,7 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
 {
   const int MaxCommentLength = 1000;
 
-  static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
+  static readonly JsonSerializerOptions _webJson = new(JsonSerializerDefaults.Web);
 
   [Function("CreateRating")]
   public async Task<IActionResult> CreateRatingAsync(
@@ -17,7 +17,7 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
     try
     {
       request = await JsonSerializer.DeserializeAsync<CreateRatingRequest>(
-          req.Body, WebJson, context.CancellationToken);
+          req.Body, _webJson, context.CancellationToken);
     }
     catch (JsonException)
     {

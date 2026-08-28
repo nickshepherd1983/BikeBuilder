@@ -11,11 +11,11 @@ namespace BikeBuilder.DataSeeder;
 public static class ComponentInformationSeeder
 {
   // Declared before the Regex fields - static initializers run in declaration order.
-  static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+  static readonly TimeSpan _regexTimeout = TimeSpan.FromSeconds(1);
 
-  static readonly Regex TireSpec = new("(26|27\\.5|29) x (\\d+(?:\\.\\d+)?)\"", RegexOptions.Compiled, RegexTimeout);
-  static readonly Regex ShockSpec = new(@"(\d+)x(\d+)mm", RegexOptions.Compiled, RegexTimeout);
-  static readonly Regex MillimetreSpec = new(@"(\d+)mm", RegexOptions.Compiled, RegexTimeout);
+  static readonly Regex _tireSpec = new("(26|27\\.5|29) x (\\d+(?:\\.\\d+)?)\"", RegexOptions.Compiled, _regexTimeout);
+  static readonly Regex _shockSpec = new(@"(\d+)x(\d+)mm", RegexOptions.Compiled, _regexTimeout);
+  static readonly Regex _millimetreSpec = new(@"(\d+)mm", RegexOptions.Compiled, _regexTimeout);
 
   public static ComponentInformation? Create(ComponentSeed seed, Random random) => seed.Category switch
   {
@@ -39,7 +39,7 @@ public static class ComponentInformationSeeder
 
   static TireComponentInformation? CreateTire(ComponentSeed seed)
   {
-    var match = TireSpec.Match(seed.Name);
+    var match = _tireSpec.Match(seed.Name);
     if (!match.Success)
       return null;
 
@@ -54,7 +54,7 @@ public static class ComponentInformationSeeder
   {
     // The first number in e.g. "210x50mm" is really eye-to-eye length, but it's close
     // enough for seed data.
-    var match = ShockSpec.Match(seed.Name);
+    var match = _shockSpec.Match(seed.Name);
     if (!match.Success)
       return null;
 
@@ -67,7 +67,7 @@ public static class ComponentInformationSeeder
 
   static int? ParseMillimetres(string name)
   {
-    var match = MillimetreSpec.Match(name);
+    var match = _millimetreSpec.Match(name);
     return match.Success ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) : null;
   }
 }
