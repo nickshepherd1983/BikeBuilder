@@ -35,7 +35,7 @@ public class RatingsFunctions(Container container, IEventPublisher eventPublishe
     if (string.IsNullOrWhiteSpace(request.BikeBuildName))
       return new BadRequestObjectResult("bikeBuildName is required.");
 
-    var user = (ClaimsPrincipal)context.Items[JwtAuthenticationMiddleware.UserContextKey]!;
+    var user = (ClaimsPrincipal)context.Items[JwtAuthenticationMiddleware.UserContextKey];
     var userId = user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)!.Value;
     // Real Auth0 access tokens usually carry only sub; an Auth0 Action adding a name claim
     // upgrades the display name without any change here.

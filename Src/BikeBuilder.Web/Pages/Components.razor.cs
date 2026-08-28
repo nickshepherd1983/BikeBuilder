@@ -13,7 +13,7 @@ public partial class Components(
   // Roughly double the dialog's natural content width: stretch it to MaxWidth.Small (600px).
   static readonly DialogOptions ComponentDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
-  MudTable<ComponentMessage>? _table;
+  MudTable<ComponentMessage> _table = null!;
   bool _isUploading;
 
   async Task<TableData<ComponentMessage>> LoadComponentsAsync(TableState state, CancellationToken cancellationToken)
@@ -28,7 +28,7 @@ public partial class Components(
     return new TableData<ComponentMessage> { Items = response.Components, TotalItems = response.TotalCount };
   }
 
-  async Task ReloadComponents() => await _table!.ReloadServerData();
+  async Task ReloadComponents() => await _table.ReloadServerData();
 
   static string FormatCost(string cost) =>
       decimal.TryParse(cost, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)

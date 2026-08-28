@@ -10,9 +10,12 @@ namespace BikeBuilder.DataSeeder;
 /// </summary>
 public static class ComponentInformationSeeder
 {
-  static readonly Regex TireSpec = new("(26|27\\.5|29) x (\\d+(?:\\.\\d+)?)\"", RegexOptions.Compiled);
-  static readonly Regex ShockSpec = new(@"(\d+)x(\d+)mm", RegexOptions.Compiled);
-  static readonly Regex MillimetreSpec = new(@"(\d+)mm", RegexOptions.Compiled);
+  // Declared before the Regex fields - static initializers run in declaration order.
+  static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+
+  static readonly Regex TireSpec = new("(26|27\\.5|29) x (\\d+(?:\\.\\d+)?)\"", RegexOptions.Compiled, RegexTimeout);
+  static readonly Regex ShockSpec = new(@"(\d+)x(\d+)mm", RegexOptions.Compiled, RegexTimeout);
+  static readonly Regex MillimetreSpec = new(@"(\d+)mm", RegexOptions.Compiled, RegexTimeout);
 
   public static ComponentInformation? Create(ComponentSeed seed, Random random) => seed.Category switch
   {

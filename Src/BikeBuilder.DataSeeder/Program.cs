@@ -59,24 +59,27 @@ Console.WriteLine($"Seeded {summary.BikeBuilds} bike builds and {summary.Ratings
 Console.WriteLine("Ratings were written straight to Cosmos, so no Service Bus notifications were published.");
 return 0;
 
-// Mirrors AzureKeyVaultEmulator.Client's own (now-obsolete) EmulatedTokenCredential - fetches a
-// bearer token from the emulator's /token endpoint - but with a cert-trusting HttpClient, since
-// that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
-sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
+namespace BikeBuilder.DataSeeder
 {
-  static readonly HttpClient Client = new(new HttpClientHandler
+  // Mirrors AzureKeyVaultEmulator.Client's own (now-obsolete) EmulatedTokenCredential - fetches a
+  // bearer token from the emulator's /token endpoint - but with a cert-trusting HttpClient, since
+  // that type's internal HttpClient can't be configured and fails TLS against a non-"localhost" host.
+  sealed class EmulatorTokenCredential(string vaultUri) : TokenCredential
   {
-    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-  });
+    static readonly HttpClient Client = new(new HttpClientHandler
+    {
+      ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+    });
 
-  public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
-      GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
+    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken) =>
+        GetTokenAsync(requestContext, cancellationToken).AsTask().GetAwaiter().GetResult();
 
-  public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
-  {
-    var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
-    response.EnsureSuccessStatusCode();
-    var token = await response.Content.ReadAsStringAsync(cancellationToken);
-    return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
+    public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+    {
+      var response = await Client.GetAsync($"{vaultUri}/token", cancellationToken);
+      response.EnsureSuccessStatusCode();
+      var token = await response.Content.ReadAsStringAsync(cancellationToken);
+      return new AccessToken(token, DateTimeOffset.UtcNow.AddDays(1));
+    }
   }
 }

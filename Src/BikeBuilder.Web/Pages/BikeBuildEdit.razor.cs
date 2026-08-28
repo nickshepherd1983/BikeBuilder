@@ -9,7 +9,6 @@ public partial class BikeBuildEdit(
 {
   [Parameter] public int Id { get; set; }
 
-  MudForm _form = null!;
   BikeBuildMessage? _bikeBuild;
 
   string _name = string.Empty;
@@ -121,7 +120,8 @@ public partial class BikeBuildEdit(
     if (result is null || result.Canceled)
       return;
 
-    var (componentId, quantity, componentDate) = ((int, int, DateTime))result.Data!;
+    if (result.Data is not (int componentId, int quantity, DateTime componentDate))
+      return;
 
     try
     {
@@ -159,7 +159,8 @@ public partial class BikeBuildEdit(
     if (result is null || result.Canceled)
       return;
 
-    var (componentId, quantity, componentDate) = ((int, int, DateTime))result.Data!;
+    if (result.Data is not (int componentId, int quantity, DateTime componentDate))
+      return;
 
     try
     {

@@ -173,3 +173,22 @@ csharp_style_prefer_extended_property_pattern = true:suggestion
 [*.vb]
 # Modifier preferences
 visual_basic_preferred_modifier_order = Partial,Default,Private,Protected,Public,Friend,NotOverridable,Overridable,MustOverride,Overloads,Overrides,MustInherit,NotInheritable,Static,Shared,Shadows,ReadOnly,WriteOnly,Dim,Const,WithEvents,Widening,Narrowing,Custom,Async:suggestion
+###############################
+# SonarAnalyzer               #
+###############################
+# Rules disabled here conflict with deliberate, documented patterns in this repo; real
+# defects the analyzer finds are fixed in code instead.
+[*.cs]
+# S4830: every ServerCertificateCustomValidationCallback bypass targets a local emulator
+# (Key Vault / Cosmos) whose self-signed cert can't be issued for its Docker alias; each
+# site carries an explanatory comment and never runs against real Azure.
+dotnet_diagnostic.S4830.severity = none
+# S1694: ComponentInformation is a deliberate polymorphic base class (STJ discriminator +
+# EF converter + DynamicComponent editors all key off the class); an interface adds nothing.
+dotnet_diagnostic.S1694.severity = none
+
+# The DataSeeder is a local dev tool: its Key Vault emulator default URI and its
+# deterministic Random seed are the point, not defects.
+[Src/BikeBuilder.DataSeeder/**.cs]
+dotnet_diagnostic.S1075.severity = none
+dotnet_diagnostic.S2245.severity = none

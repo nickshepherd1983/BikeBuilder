@@ -10,7 +10,7 @@ public partial class BikeBuilds(
   // Same width treatment as the Components page's component dialog.
   static readonly DialogOptions BikeBuildDialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
-  MudTable<BikeBuildMessage>? _table;
+  MudTable<BikeBuildMessage> _table = null!;
   Dictionary<int, RatingSummaryDto>? _ratingSummaries;
 
   async Task<TableData<BikeBuildMessage>> LoadBikeBuildsAsync(TableState state, CancellationToken cancellationToken)
@@ -40,10 +40,14 @@ public partial class BikeBuilds(
     }
   }
 
-  string? RatingCountFor(int bikeBuildId) =>
-      _ratingSummaries is null
-          ? null
-          : (_ratingSummaries.TryGetValue(bikeBuildId, out var summary) ? summary.Count : 0).ToString();
+  string? RatingCountFor(int bikeBuildId)
+  {
+    if (_ratingSummaries is null)
+      return null;
+
+    var count = _ratingSummaries.TryGetValue(bikeBuildId, out var summary) ? summary.Count : 0;
+    return count.ToString();
+  }
 
   string? AverageRatingFor(int bikeBuildId) =>
       _ratingSummaries is not null && _ratingSummaries.TryGetValue(bikeBuildId, out var summary)
@@ -70,7 +74,8 @@ public partial class BikeBuilds(
     if (result is null || result.Canceled)
       return;
 
-    var (name, date, description) = ((string, DateTime, string))result.Data!;
+    if (result.Data is not (string name, DateTime date, string description))
+      return;
 
     try
     {
@@ -103,7 +108,7 @@ public partial class BikeBuilds(
     {
       await _bikeBuildClient.DeleteBikeBuildAsync(new DeleteBikeBuildRequest { Id = bikeBuild.Id });
       _snackbar.Add("Bike build deleted.", Severity.Success);
-      await _table!.ReloadServerData();
+      await _table.ReloadServerData();
     }
     catch (RpcException ex)
     {
