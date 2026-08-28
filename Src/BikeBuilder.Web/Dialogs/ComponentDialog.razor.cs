@@ -10,6 +10,7 @@ public partial class ComponentDialog
   [Parameter] public string Description { get; set; } = string.Empty;
   [Parameter] public string Sku { get; set; } = string.Empty;
   [Parameter] public Manufacturer Manufacturer { get; set; } = Manufacturer.Other;
+  [Parameter] public string ComponentInformationJson { get; set; } = string.Empty;
 
   static readonly Manufacturer[] Manufacturers =
       [Manufacturer.Sram, Manufacturer.Shimano, Manufacturer.Hope, Manufacturer.Other];
@@ -20,6 +21,8 @@ public partial class ComponentDialog
   string _description = string.Empty;
   string _sku = string.Empty;
   Manufacturer _manufacturer = Manufacturer.Other;
+  ComponentInformation? _information;
+  Type? _informationType;
 
   protected override void OnInitialized()
   {
@@ -28,6 +31,17 @@ public partial class ComponentDialog
     _description = Description;
     _sku = Sku;
     _manufacturer = Manufacturer;
+    _information = ComponentInformationSerializer.Deserialize(ComponentInformationJson);
+    _informationType = _information?.GetType();
+  }
+
+  void OnInformationTypeChanged(Type? type)
+  {
+    _informationType = type;
+    if (type is null)
+      _information = null;
+    else if (_information?.GetType() != type)
+      _information = (ComponentInformation)Activator.CreateInstance(type)!;
   }
 
   static string? ValidateCost(string value) =>
@@ -41,7 +55,7 @@ public partial class ComponentDialog
     if (!_form.IsValid)
       return;
 
-    MudDialog.Close(DialogResult.Ok((_name, _cost, _description, _sku, _manufacturer)));
+    MudDialog.Close(DialogResult.Ok(new ComponentDialogResult(_name, _cost, _description, _sku, _manufacturer, _information)));
   }
 
   void Cancel() => MudDialog.Cancel();

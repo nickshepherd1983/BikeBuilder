@@ -40,7 +40,7 @@
         <MudTd DataLabel="Description">@context.Description</MudTd>
         <MudTd DataLabel="">
             <MudStack Row="true" Spacing="1">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => EditComponent(context)" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Edit" OnClick="() => EditComponent(context)" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="() => DeleteComponent(context)" />
                 <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.gif" MaxFileSize="5_000_000"
                                FilesChanged="(file) => UploadImage(context, file)">

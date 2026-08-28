@@ -1,9 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY Src/BikeBuilder.API/BikeBuilder.API.csproj Src/BikeBuilder.API/
+COPY Src/BikeBuilder.Contracts/BikeBuilder.Contracts.csproj Src/BikeBuilder.Contracts/
 COPY Src/BikeBuilder.Web/BikeBuilder.Web.csproj Src/BikeBuilder.Web/
 RUN dotnet restore Src/BikeBuilder.Web/BikeBuilder.Web.csproj
 COPY Src/BikeBuilder.API/ Src/BikeBuilder.API/
+COPY Src/BikeBuilder.Contracts/ Src/BikeBuilder.Contracts/
 COPY Src/BikeBuilder.Web/ Src/BikeBuilder.Web/
 RUN dotnet publish Src/BikeBuilder.Web/BikeBuilder.Web.csproj -c Release -o /app --no-restore
 ARG API_BASE_ADDRESS=http://127.0.0.1:18100

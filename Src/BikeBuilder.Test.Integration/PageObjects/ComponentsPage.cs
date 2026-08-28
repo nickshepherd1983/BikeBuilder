@@ -5,7 +5,8 @@ public class ComponentsPage(IPage page, string baseUrl)
   public Task GotoAsync() =>
       NavigationHelper.GotoAndWaitForHeadingAsync(page, $"{baseUrl}/components", "Components");
 
-  public Task AddComponentAsync(string name, string cost, string description, string sku = "", string? manufacturer = null) => RetryHelper.RunAsync(async () =>
+  public Task AddComponentAsync(string name, string cost, string description, string sku = "", string? manufacturer = null,
+      string? informationType = null, IReadOnlyDictionary<string, string>? informationSelects = null) => RetryHelper.RunAsync(async () =>
   {
     var dialog = page.Locator(".mud-dialog");
     if (await dialog.IsVisibleAsync())
@@ -24,10 +25,20 @@ public class ComponentsPage(IPage page, string baseUrl)
 
     if (manufacturer is not null)
     {
-      // MudSelect renders both a hidden <input role="combobox"> and the visible <div
-      // role="combobox"> sharing the same aria-label - scope to the div (see BikeBuildEditPage).
-      await dialog.Locator("div[role='combobox'][aria-label='Manufacturer']").ClickAsync();
+      await ComboboxByLabel(dialog, "Manufacturer").ClickAsync();
       await page.GetByRole(AriaRole.Option, new() { Name = manufacturer }).ClickAsync();
+    }
+
+    if (informationType is not null)
+    {
+      await ComboboxByLabel(dialog, "Information Type").ClickAsync();
+      await page.GetByRole(AriaRole.Option, new() { Name = informationType }).ClickAsync();
+
+      foreach (var (label, value) in informationSelects ?? new Dictionary<string, string>())
+      {
+        await ComboboxByLabel(dialog, label).ClickAsync();
+        await page.GetByRole(AriaRole.Option, new() { Name = value }).ClickAsync();
+      }
     }
 
     await dialog.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
@@ -52,6 +63,30 @@ public class ComponentsPage(IPage page, string baseUrl)
   {
     var rowText = await RowByName(componentName).InnerTextAsync();
     return texts.All(rowText.Contains);
+  }
+
+  public async Task<ILocator> OpenEditDialogAsync(string componentName)
+  {
+    await RowByName(componentName).Locator("button[aria-label='Edit']").ClickAsync();
+    var dialog = page.Locator(".mud-dialog");
+    await dialog.WaitForAsync();
+    return dialog;
+  }
+
+  public Task<string> GetInformationFieldTextAsync(ILocator dialog, string label) =>
+      ComboboxByLabel(dialog, label).EvaluateAsync<string>("el => el.tagName === 'INPUT' ? el.value : el.innerText");
+
+  // MudSelect renders a hidden <input role="combobox"> plus a visible <div role="combobox">
+  // when the value matches a renderable MudSelectItem - but with no matching item (e.g. the
+  // null "None" information type) the input itself is the visible combobox and no div exists,
+  // so scope by visibility rather than element type (see BikeBuildEditPage for the old quirk).
+  static ILocator ComboboxByLabel(ILocator dialog, string label) =>
+      dialog.Locator($"[role='combobox'][aria-label='{label}']:visible");
+
+  public async Task CancelDialogAsync(ILocator dialog)
+  {
+    await dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
+    await dialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
   }
 
   ILocator RowByName(string componentName) =>

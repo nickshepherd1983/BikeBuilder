@@ -16,6 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BikeBuilder.Contracts\BikeBuilder.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="..\BikeBuilder.API\Protos\component.proto" GrpcServices="Client" Link="Protos\component.proto" />
     <Protobuf Include="..\BikeBuilder.API\Protos\bikebuild.proto" GrpcServices="Client" Link="Protos\bikebuild.proto" />
   </ItemGroup>

@@ -8,6 +8,7 @@ public class Component
   public string Description { get; set; } = string.Empty;
   public string Sku { get; set; } = string.Empty;
   public Manufacturer Manufacturer { get; set; } = Manufacturer.Other;
+  public ComponentInformation? Information { get; set; }
 
   public ComponentImage? Image { get; set; }
 

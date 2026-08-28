@@ -52,6 +52,19 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     await components.UploadImageToRowAsync(frameName, imagePath);
     Assert.True(await components.HasThumbnailAsync(frameName));
 
+    // Round-trip a polymorphic ComponentInformation: dialog -> JSON -> gRPC -> EF -> SQL and
+    // back through the edit dialog. (The frame above covers the "None" path.)
+    const string tireName = "AAA Trail Tire";
+    await components.AddComponentAsync(tireName, "79.99", "Sticky front tire",
+        informationType: "Tire",
+        informationSelects: new Dictionary<string, string> { ["Size"] = "29", ["Width (inches)"] = "2.4" });
+
+    var tireDialog = await components.OpenEditDialogAsync(tireName);
+    Assert.Contains("Tire", await components.GetInformationFieldTextAsync(tireDialog, "Information Type"));
+    Assert.Contains("29", await components.GetInformationFieldTextAsync(tireDialog, "Size"));
+    Assert.Contains("2.4", await components.GetInformationFieldTextAsync(tireDialog, "Width (inches)"));
+    await components.CancelDialogAsync(tireDialog);
+
     // Connect to Web.Public before creating the BikeBuild so its SignalR connection is
     // already established and can't miss any of the notifications below.
     await notifications.GotoAsync();

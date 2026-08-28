@@ -46,7 +46,8 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
       Cost = ParseCost(request.Cost),
       Description = request.Description,
       Sku = request.Sku,
-      Manufacturer = (Data.Entities.Manufacturer)(int)request.Manufacturer
+      Manufacturer = (Data.Entities.Manufacturer)(int)request.Manufacturer,
+      Information = ParseComponentInformation(request.ComponentInformationJson)
     };
 
     db.Components.Add(component);
@@ -75,6 +76,7 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     component.Description = request.Description;
     component.Sku = request.Sku;
     component.Manufacturer = (Data.Entities.Manufacturer)(int)request.Manufacturer;
+    component.Information = ParseComponentInformation(request.ComponentInformationJson);
 
     await db.SaveChangesAsync(context.CancellationToken);
 
@@ -113,7 +115,8 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     Sku = component.Sku,
     Manufacturer = (Protos.Manufacturer)(int)component.Manufacturer,
     HasImage = component.Image is not null,
-    ImageVersion = component.Image?.UploadedAt.UtcTicks ?? 0
+    ImageVersion = component.Image?.UploadedAt.UtcTicks ?? 0,
+    ComponentInformationJson = ComponentInformationSerializer.Serialize(component.Information)
   };
 
   static decimal ParseCost(string cost)
@@ -124,5 +127,20 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
     }
 
     return value;
+  }
+
+  static ComponentInformation? ParseComponentInformation(string json)
+  {
+    if (string.IsNullOrWhiteSpace(json))
+      return null;
+
+    try
+    {
+      return ComponentInformationSerializer.Deserialize(json);
+    }
+    catch (Exception ex) when (ex is JsonException or NotSupportedException)
+    {
+      throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid component information: {ex.Message}"));
+    }
   }
 }

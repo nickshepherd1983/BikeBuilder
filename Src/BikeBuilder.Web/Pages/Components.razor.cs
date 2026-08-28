@@ -48,17 +48,18 @@ public partial class Components(
     if (result is null || result.Canceled)
       return;
 
-    var (name, cost, description, sku, manufacturer) = ((string, string, string, string, Manufacturer))result.Data!;
+    var component = (ComponentDialogResult)result.Data!;
 
     try
     {
       await _componentClient.CreateComponentAsync(new CreateComponentRequest
       {
-        Name = name,
-        Cost = cost,
-        Description = description,
-        Sku = sku,
-        Manufacturer = manufacturer
+        Name = component.Name,
+        Cost = component.Cost,
+        Description = component.Description,
+        Sku = component.Sku,
+        Manufacturer = component.Manufacturer,
+        ComponentInformationJson = ComponentInformationSerializer.Serialize(component.Information)
       });
       _snackbar.Add("Component added.", Severity.Success);
       await ReloadComponents();
@@ -78,7 +79,8 @@ public partial class Components(
       { x => x.Cost, component.Cost },
       { x => x.Description, component.Description },
       { x => x.Sku, component.Sku },
-      { x => x.Manufacturer, component.Manufacturer }
+      { x => x.Manufacturer, component.Manufacturer },
+      { x => x.ComponentInformationJson, component.ComponentInformationJson }
     };
 
     var dialog = await _dialogService.ShowAsync<ComponentDialog>("Edit Component", parameters, ComponentDialogOptions);
@@ -87,18 +89,19 @@ public partial class Components(
     if (result is null || result.Canceled)
       return;
 
-    var (name, cost, description, sku, manufacturer) = ((string, string, string, string, Manufacturer))result.Data!;
+    var edited = (ComponentDialogResult)result.Data!;
 
     try
     {
       await _componentClient.UpdateComponentAsync(new UpdateComponentRequest
       {
         Id = component.Id,
-        Name = name,
-        Cost = cost,
-        Description = description,
-        Sku = sku,
-        Manufacturer = manufacturer
+        Name = edited.Name,
+        Cost = edited.Cost,
+        Description = edited.Description,
+        Sku = edited.Sku,
+        Manufacturer = edited.Manufacturer,
+        ComponentInformationJson = ComponentInformationSerializer.Serialize(edited.Information)
       });
       _snackbar.Add("Component updated.", Severity.Success);
       await ReloadComponents();

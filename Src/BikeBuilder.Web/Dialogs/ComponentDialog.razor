@@ -12,6 +12,22 @@
                     <MudSelectItem T="Manufacturer" Value="manufacturer">@manufacturer</MudSelectItem>
                 }
             </MudSelect>
+            <MudSelect T="Type" Value="_informationType" ValueChanged="OnInformationTypeChanged" Label="Information Type" Class="mt-3"
+                       ToStringFunc="@(t => t is null ? "None" : ComponentInformationEditorRegistry.DisplayNameFor(t))">
+                <MudSelectItem T="Type" Value="null">None</MudSelectItem>
+                @foreach (var (type, displayName) in ComponentInformationEditorRegistry.KnownTypes)
+                {
+                    <MudSelectItem T="Type" Value="type">@displayName</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_information is not null)
+            {
+                @* @key tears the editor down on type switch so stale field state can't leak. *@
+                <div @key="_information">
+                    <DynamicComponent Type="ComponentInformationEditorRegistry.EditorFor(_information.GetType())"
+                                      Parameters="@(new Dictionary<string, object> { [nameof(ComponentInformationEditorBase.Model)] = _information })" />
+                </div>
+            }
             <MudTextField @bind-Value="_description" Label="Description" Lines="6" Class="mt-3" />
         </MudForm>
     </DialogContent>

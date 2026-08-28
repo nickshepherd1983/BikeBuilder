@@ -26,5 +26,17 @@ public class ComponentConfiguration : IEntityTypeConfiguration<Component>
         .HasConversion<string>()
         .HasMaxLength(20)
         .HasDefaultValue(Entities.Manufacturer.Other);
+
+    // Polymorphic JSON column; the comparer snapshots via a JSON round trip because the
+    // subtypes are mutable reference types edited in place - without it change tracking
+    // would never see an in-place edit.
+    builder.Property(c => c.Information)
+        .HasConversion(
+            information => ComponentInformationSerializer.Serialize(information),
+            json => ComponentInformationSerializer.Deserialize(json),
+            new ValueComparer<ComponentInformation>(
+                (a, b) => ComponentInformationSerializer.Serialize(a) == ComponentInformationSerializer.Serialize(b),
+                v => ComponentInformationSerializer.Serialize(v).GetHashCode(),
+                v => ComponentInformationSerializer.Deserialize(ComponentInformationSerializer.Serialize(v))!));
   }
 }

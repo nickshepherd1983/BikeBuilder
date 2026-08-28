@@ -29,6 +29,7 @@ message ComponentMessage {
   int64 image_version = 6;
   string sku = 7;
   Manufacturer manufacturer = 8;
+  string component_information_json = 9; // polymorphic ComponentInformation JSON; "" = none
 }
 
 message ListComponentsRequest {
@@ -52,6 +53,7 @@ message CreateComponentRequest {
   string description = 3;
   string sku = 4;
   Manufacturer manufacturer = 5;
+  string component_information_json = 6; // polymorphic ComponentInformation JSON; "" = none
 }
 
 message UpdateComponentRequest {
@@ -61,6 +63,7 @@ message UpdateComponentRequest {
   string description = 4;
   string sku = 5;
   Manufacturer manufacturer = 6;
+  string component_information_json = 7; // polymorphic ComponentInformation JSON; "" = none
 }
 
 message DeleteComponentRequest {

@@ -43,7 +43,8 @@ public static class DatabaseSeeder
       Cost = seed.Cost,
       Description = ComponentCatalog.Describe(seed),
       Sku = $"{seed.Brand[..Math.Min(3, seed.Brand.Length)].ToUpperInvariant()}-{index + 1:D4}",
-      Manufacturer = seed.Manufacturer
+      Manufacturer = seed.Manufacturer,
+      Information = ComponentInformationSeeder.Create(seed, random)
     }).ToList();
 
     db.Components.AddRange(components);
