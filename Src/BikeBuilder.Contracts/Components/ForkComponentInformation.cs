@@ -4,5 +4,5 @@ public class ForkComponentInformation : ComponentInformation
 {
   public override string DisplayName => "Fork";
 
-  public int TravelMm { get; set; }
+  public TravelMm TravelMm { get; set; } = new(150);
 }

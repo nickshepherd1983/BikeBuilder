@@ -17,19 +17,19 @@ public static class ComponentInformationSeeder
   public static ComponentInformation? Create(ComponentSeed seed, Random random) => seed.Category switch
   {
     "Tire" => CreateTire(seed),
-    "Rim" => new RimComponentInformation { Size = seed.Name.Contains("27.5") ? "27.5" : "29" },
+    "Rim" => new RimComponentInformation { Size = seed.Name.Contains("27.5") ? WheelSize.TwentySevenFive : WheelSize.TwentyNine },
     "Handlebar" => new HandlebarComponentInformation
     {
-      WidthMm = ParseMillimetres(seed.Name) ?? 780,
-      RiseMm = random.NextDouble() < 0.5 ? 20 : 35
+      WidthMm = new HandlebarWidthMm(ParseMillimetres(seed.Name) ?? 780),
+      RiseMm = new RiseMm(random.NextDouble() < 0.5 ? 20 : 35)
     },
-    "Stem" => new StemComponentInformation { LengthMm = ParseMillimetres(seed.Name) ?? 50 },
+    "Stem" => new StemComponentInformation { LengthMm = new StemLengthMm(ParseMillimetres(seed.Name) ?? 50) },
     "Dropper Post" => new DropperPostComponentInformation
     {
-      TravelMm = ParseMillimetres(seed.Name) ?? 150,
-      DiameterMm = DropperPostComponentInformation.Diameters[random.Next(DropperPostComponentInformation.Diameters.Length)]
+      TravelMm = new TravelMm(ParseMillimetres(seed.Name) ?? 150),
+      DiameterMm = SeatpostDiameterMm.Common[random.Next(SeatpostDiameterMm.Common.Length)]
     },
-    "Suspension Fork" => new ForkComponentInformation { TravelMm = ParseMillimetres(seed.Name) ?? 150 },
+    "Suspension Fork" => new ForkComponentInformation { TravelMm = new TravelMm(ParseMillimetres(seed.Name) ?? 150) },
     "Rear Shock" => CreateShock(seed),
     _ => null
   };
@@ -42,8 +42,8 @@ public static class ComponentInformationSeeder
 
     return new TireComponentInformation
     {
-      Size = match.Groups[1].Value,
-      WidthInches = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)
+      Size = new WheelSize(match.Groups[1].Value),
+      WidthInches = new TireWidthInches(double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture))
     };
   }
 
@@ -57,8 +57,8 @@ public static class ComponentInformationSeeder
 
     return new ShockComponentInformation
     {
-      TravelMm = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture),
-      StrokeMm = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture)
+      TravelMm = new TravelMm(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)),
+      StrokeMm = new StrokeMm(int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture))
     };
   }
 

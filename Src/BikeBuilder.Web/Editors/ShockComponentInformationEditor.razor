@@ -1,4 +1,6 @@
 @inherits ComponentInformationEditor<ShockComponentInformation>
 
-<MudNumericField T="int" @bind-Value="Value.TravelMm" Label="Travel (mm)" Min="0" Class="mt-3" />
-<MudNumericField T="int" @bind-Value="Value.StrokeMm" Label="Stroke (mm)" Min="0" Class="mt-3" />
+<MudNumericField T="int" Value="Value.TravelMm.Value" ValueChanged="@((int v) => Value.TravelMm = new TravelMm(v))"
+                 Label="Travel (mm)" Min="TravelMm.Min" Max="TravelMm.Max" Class="mt-3" />
+<MudNumericField T="int" Value="Value.StrokeMm.Value" ValueChanged="@((int v) => Value.StrokeMm = new StrokeMm(v))"
+                 Label="Stroke (mm)" Min="StrokeMm.Min" Max="StrokeMm.Max" Class="mt-3" />

@@ -1,4 +1,6 @@
 @inherits ComponentInformationEditor<HandlebarComponentInformation>
 
-<MudNumericField T="int" @bind-Value="Value.WidthMm" Label="Width (mm)" Min="0" Class="mt-3" />
-<MudNumericField T="int" @bind-Value="Value.RiseMm" Label="Rise (mm)" Min="0" Class="mt-3" />
+<MudNumericField T="int" Value="Value.WidthMm.Value" ValueChanged="@((int v) => Value.WidthMm = new HandlebarWidthMm(v))"
+                 Label="Width (mm)" Min="HandlebarWidthMm.Min" Max="HandlebarWidthMm.Max" Class="mt-3" />
+<MudNumericField T="int" Value="Value.RiseMm.Value" ValueChanged="@((int v) => Value.RiseMm = new RiseMm(v))"
+                 Label="Rise (mm)" Min="RiseMm.Min" Max="RiseMm.Max" Class="mt-3" />

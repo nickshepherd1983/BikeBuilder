@@ -1,9 +1,10 @@
 @inherits ComponentInformationEditor<DropperPostComponentInformation>
 
-<MudNumericField T="int" @bind-Value="Value.TravelMm" Label="Travel (mm)" Min="0" Class="mt-3" />
-<MudSelect T="double" @bind-Value="Value.DiameterMm" Label="Diameter (mm)" Class="mt-3">
-    @foreach (var diameter in DropperPostComponentInformation.Diameters)
+<MudNumericField T="int" Value="Value.TravelMm.Value" ValueChanged="@((int v) => Value.TravelMm = new TravelMm(v))"
+                 Label="Travel (mm)" Min="TravelMm.Min" Max="TravelMm.Max" Class="mt-3" />
+<MudSelect T="SeatpostDiameterMm" @bind-Value="Value.DiameterMm" Label="Diameter (mm)" Class="mt-3">
+    @foreach (var diameter in SeatpostDiameterMm.Common)
     {
-        <MudSelectItem T="double" Value="diameter">@diameter</MudSelectItem>
+        <MudSelectItem T="SeatpostDiameterMm" Value="diameter">@diameter</MudSelectItem>
     }
 </MudSelect>

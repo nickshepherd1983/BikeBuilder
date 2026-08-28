@@ -4,6 +4,6 @@ public class HandlebarComponentInformation : ComponentInformation
 {
   public override string DisplayName => "Handlebar";
 
-  public int WidthMm { get; set; }
-  public int RiseMm { get; set; }
+  public HandlebarWidthMm WidthMm { get; set; } = new(780);
+  public RiseMm RiseMm { get; set; } = new(20);
 }

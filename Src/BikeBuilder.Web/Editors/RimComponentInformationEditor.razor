@@ -1,8 +1,8 @@
 @inherits ComponentInformationEditor<RimComponentInformation>
 
-<MudSelect T="string" @bind-Value="Value.Size" Label="Size" Required="true" RequiredError="Size is required" Class="mt-3">
-    @foreach (var size in RimComponentInformation.Sizes)
+<MudSelect T="WheelSize?" @bind-Value="Value.Size" Label="Size" Required="true" RequiredError="Size is required" Class="mt-3">
+    @foreach (var size in WheelSize.All)
     {
-        <MudSelectItem T="string" Value="size">@size</MudSelectItem>
+        <MudSelectItem T="WheelSize?" Value="size">@size</MudSelectItem>
     }
 </MudSelect>

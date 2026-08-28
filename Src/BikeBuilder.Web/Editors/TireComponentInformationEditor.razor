@@ -1,14 +1,14 @@
 @inherits ComponentInformationEditor<TireComponentInformation>
 
-<MudSelect T="string" @bind-Value="Value.Size" Label="Size" Required="true" RequiredError="Size is required" Class="mt-3">
-    @foreach (var size in TireComponentInformation.Sizes)
+<MudSelect T="WheelSize?" @bind-Value="Value.Size" Label="Size" Required="true" RequiredError="Size is required" Class="mt-3">
+    @foreach (var size in WheelSize.All)
     {
-        <MudSelectItem T="string" Value="size">@size</MudSelectItem>
+        <MudSelectItem T="WheelSize?" Value="size">@size</MudSelectItem>
     }
 </MudSelect>
-<MudSelect T="double" @bind-Value="Value.WidthInches" Label="Width (inches)" Class="mt-3">
-    @foreach (var width in TireComponentInformation.Widths)
+<MudSelect T="TireWidthInches?" @bind-Value="Value.WidthInches" Label="Width (inches)" Required="true" RequiredError="Width is required" Class="mt-3">
+    @foreach (var width in TireWidthInches.Common)
     {
-        <MudSelectItem T="double" Value="width">@width</MudSelectItem>
+        <MudSelectItem T="TireWidthInches?" Value="width">@width</MudSelectItem>
     }
 </MudSelect>

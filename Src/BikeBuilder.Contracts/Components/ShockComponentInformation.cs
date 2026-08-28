@@ -4,6 +4,6 @@ public class ShockComponentInformation : ComponentInformation
 {
   public override string DisplayName => "Shock";
 
-  public int TravelMm { get; set; }
-  public int StrokeMm { get; set; }
+  public TravelMm TravelMm { get; set; } = new(210);
+  public StrokeMm StrokeMm { get; set; } = new(50);
 }

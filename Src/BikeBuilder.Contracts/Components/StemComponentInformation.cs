@@ -4,5 +4,5 @@ public class StemComponentInformation : ComponentInformation
 {
   public override string DisplayName => "Stem";
 
-  public int LengthMm { get; set; }
+  public StemLengthMm LengthMm { get; set; } = new(50);
 }
