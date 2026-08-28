@@ -80,8 +80,13 @@ public class SmokeTests(BikeBuilderAppFixture fixture)
     await notifications.WaitForNotificationAsync($"New bike build created: {buildName}");
 
     await editPage.AddComponentAsync(frameName, quantity: 1);
+
+    // Three tires exceed the recommended two: the dialog warns politely but still saves.
+    await editPage.AddComponentAsync(tireName, quantity: 3, expectWarningContains: "at most 2 Tires");
+
     var attached = await editPage.GetAttachedComponentNamesAsync();
     Assert.Contains(frameName, attached);
+    Assert.Contains(tireName, attached);
 
     // Check each rating's toast right after submitting it - snackbar toasts auto-dismiss,
     // so batching the checks at the end would race the first toast's timeout.

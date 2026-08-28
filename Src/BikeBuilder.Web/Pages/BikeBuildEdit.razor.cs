@@ -111,7 +111,8 @@ public partial class BikeBuildEdit(
   {
     var parameters = new DialogParameters<BikeBuildComponentDialog>
     {
-      { x => x.Title, "Add Component" }
+      { x => x.Title, "Add Component" },
+      { x => x.ExistingComponents, (IReadOnlyList<BikeBuildComponentMessage>)_bikeBuild!.Components }
     };
 
     var dialog = await _dialogService.ShowAsync<BikeBuildComponentDialog>("Add Component", parameters);
@@ -149,8 +150,11 @@ public partial class BikeBuildEdit(
       { x => x.Title, "Edit Component" },
       { x => x.ComponentId, bbc.ComponentId },
       { x => x.ComponentName, bbc.ComponentName },
+      { x => x.ComponentInformationJson, bbc.ComponentInformationJson },
       { x => x.Quantity, bbc.Quantity },
-      { x => x.Date, bbc.Date.ToDateTimeOffset().Date }
+      { x => x.Date, bbc.Date.ToDateTimeOffset().Date },
+      { x => x.ExistingComponents, (IReadOnlyList<BikeBuildComponentMessage>)_bikeBuild!.Components },
+      { x => x.ExcludeId, bbc.Id }
     };
 
     var dialog = await _dialogService.ShowAsync<BikeBuildComponentDialog>("Edit Component", parameters);

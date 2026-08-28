@@ -17,4 +17,6 @@ public class TireComponentInformation : ComponentInformation
     if (WidthInches is not null)
       yield return new("Width", $"{WidthInches}\"");
   }
+
+  public override int? GetRecommendedMaxPerBuild() => 2;
 }

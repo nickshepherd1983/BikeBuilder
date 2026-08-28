@@ -14,4 +14,6 @@ public class RimComponentInformation : ComponentInformation
     if (Size is not null)
       yield return new("Size", $"{Size}\"");
   }
+
+  public override int? GetRecommendedMaxPerBuild() => 2;
 }

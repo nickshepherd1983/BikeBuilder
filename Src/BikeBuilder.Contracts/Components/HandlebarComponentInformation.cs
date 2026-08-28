@@ -14,4 +14,6 @@ public class HandlebarComponentInformation : ComponentInformation
     yield return new("Width", $"{WidthMm}mm");
     yield return new("Rise", $"{RiseMm}mm");
   }
+
+  public override int? GetRecommendedMaxPerBuild() => 1;
 }

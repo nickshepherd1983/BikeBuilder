@@ -63,14 +63,34 @@ public static class DatabaseSeeder
         Description = SeedPools.BuildDescriptions[i % SeedPools.BuildDescriptions.Length]
       };
 
-      var picks = Enumerable.Range(0, catalog.Count).OrderBy(_ => random.Next()).Take(random.Next(6, 13));
-      foreach (var pick in picks)
+      // Walk a shuffled catalog until the target count is reached, skipping picks that
+      // would push a kind past its recommended per-build maximum (2 tires, 1 fork, ...).
+      var targetCount = random.Next(6, 13);
+      var shuffled = Enumerable.Range(0, catalog.Count).OrderBy(_ => random.Next());
+      var kindTotals = new Dictionary<Type, int>();
+      foreach (var pick in shuffled)
       {
+        if (build.BikeBuildComponents.Count >= targetCount)
+          break;
+
         var (seed, component) = catalog[pick];
+        var quantity = seed.Category is "Tire" or "Rim" ? 2 : 1;
+
+        var kind = component.Information?.GetType();
+        var recommendedMax = component.Information?.GetRecommendedMaxPerBuild();
+        if (kind is not null && recommendedMax is not null)
+        {
+          var current = kindTotals.GetValueOrDefault(kind);
+          if (current + quantity > recommendedMax)
+            continue;
+
+          kindTotals[kind] = current + quantity;
+        }
+
         build.BikeBuildComponents.Add(new BikeBuildComponent
         {
           Component = component,
-          Quantity = seed.Category is "Tire" or "Rim" ? 2 : 1,
+          Quantity = quantity,
           Date = date
         });
       }

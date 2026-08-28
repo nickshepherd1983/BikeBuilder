@@ -12,4 +12,6 @@ public class ForkComponentInformation : ComponentInformation
   {
     yield return new("Travel", $"{TravelMm}mm");
   }
+
+  public override int? GetRecommendedMaxPerBuild() => 1;
 }

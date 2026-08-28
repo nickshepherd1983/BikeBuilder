@@ -14,4 +14,6 @@ public class ShockComponentInformation : ComponentInformation
     yield return new("Travel", $"{TravelMm}mm");
     yield return new("Stroke", $"{StrokeMm}mm");
   }
+
+  public override int? GetRecommendedMaxPerBuild() => 1;
 }

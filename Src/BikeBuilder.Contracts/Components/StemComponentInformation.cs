@@ -12,4 +12,6 @@ public class StemComponentInformation : ComponentInformation
   {
     yield return new("Length", $"{LengthMm}mm");
   }
+
+  public override int? GetRecommendedMaxPerBuild() => 1;
 }

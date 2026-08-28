@@ -2,7 +2,7 @@
 
 public class BikeBuildEditPage(IPage page)
 {
-  public Task AddComponentAsync(string componentName, int quantity) => RetryHelper.RunAsync(async () =>
+  public Task AddComponentAsync(string componentName, int quantity, string? expectWarningContains = null) => RetryHelper.RunAsync(async () =>
   {
     var dialog = page.Locator(".mud-dialog");
     if (await dialog.IsVisibleAsync())
@@ -16,6 +16,11 @@ public class BikeBuildEditPage(IPage page)
     await dialog.GetByLabel("Component").FillAsync(componentName);
     await page.Locator(".mud-popover .mud-list-item").Filter(new() { HasText = componentName }).First.ClickAsync();
     await dialog.GetByLabel("Quantity").FillAsync(quantity.ToString());
+
+    // The recommended-maximum warning is advisory: assert it shows, then save anyway.
+    if (expectWarningContains is not null)
+      await Expect(dialog.Locator(".mud-alert")).ToContainTextAsync(expectWarningContains, new() { Timeout = 8000 });
+
     await dialog.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
     await page.Locator("table tbody").GetByText(componentName, new() { Exact = true }).WaitForAsync(new() { Timeout = 8000 });

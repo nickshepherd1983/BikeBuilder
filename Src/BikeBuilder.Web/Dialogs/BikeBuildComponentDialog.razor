@@ -6,8 +6,14 @@
                              Required="true" RequiredError="Component is required"
                              SearchFunc="SearchComponentsAsync" ToStringFunc="@(c => c?.Name)"
                              MinCharacters="0" DebounceInterval="300" Clearable="true" />
-            <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="1" Required="true" Class="mt-3" />
+            @* Immediate: the recommendation warning below reacts per keystroke, so the layout
+               settles while typing instead of shifting under the user's Save click on blur. *@
+            <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="1" Required="true" Immediate="true" Class="mt-3" />
             <MudDatePicker @bind-Date="_date" Label="Date" Required="true" Class="mt-3" />
+            @if (RecommendationWarning is string warning)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">@warning</MudAlert>
+            }
         </MudForm>
     </DialogContent>
     <DialogActions>
