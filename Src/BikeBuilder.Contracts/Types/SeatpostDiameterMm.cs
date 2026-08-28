@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 
-namespace BikeBuilder.Contracts.Components;
+namespace BikeBuilder.Contracts.Types;
 
 [JsonConverter(typeof(DoubleValueJsonConverter<SeatpostDiameterMm>))]
 public readonly record struct SeatpostDiameterMm : IDoubleValue<SeatpostDiameterMm>

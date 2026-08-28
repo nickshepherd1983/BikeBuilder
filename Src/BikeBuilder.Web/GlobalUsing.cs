@@ -1,6 +1,7 @@
 ﻿global using System.Globalization;
 global using BikeBuilder.API.Protos;
 global using BikeBuilder.Contracts.Components;
+global using BikeBuilder.Contracts.Types;
 global using BikeBuilder.Web.Dialogs;
 global using BikeBuilder.Web.Editors;
 global using BikeBuilder.Web.Services;

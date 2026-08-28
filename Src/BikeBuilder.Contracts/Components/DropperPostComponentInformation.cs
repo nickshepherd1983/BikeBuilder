@@ -1,3 +1,5 @@
+using BikeBuilder.Contracts.Types;
+
 namespace BikeBuilder.Contracts.Components;
 
 public class DropperPostComponentInformation : ComponentInformation

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BikeBuilder.Contracts.Components;
+namespace BikeBuilder.Contracts.Types;
 
 /// <summary>Wheel/rim/tire diameter designation; the industry's closed set, not a number.</summary>
 [JsonConverter(typeof(WheelSizeJsonConverter))]

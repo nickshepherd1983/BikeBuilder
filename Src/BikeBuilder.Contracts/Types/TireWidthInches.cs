@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 
-namespace BikeBuilder.Contracts.Components;
+namespace BikeBuilder.Contracts.Types;
 
 [JsonConverter(typeof(DoubleValueJsonConverter<TireWidthInches>))]
 public readonly record struct TireWidthInches : IDoubleValue<TireWidthInches>

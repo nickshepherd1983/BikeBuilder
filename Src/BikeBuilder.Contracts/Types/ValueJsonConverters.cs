@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace BikeBuilder.Contracts.Components;
+namespace BikeBuilder.Contracts.Types;
 
 // The measurement value objects serialize as their raw primitive so the stored/wire JSON
 // keeps its pre-value-object shape ({"TravelMm":140}) - existing rows and clients keep

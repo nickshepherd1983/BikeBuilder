@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 
-namespace BikeBuilder.Contracts.Components;
+namespace BikeBuilder.Contracts.Types;
 
 /// <summary>Suspension or seatpost travel; shared by forks, shocks, and dropper posts.</summary>
 [JsonConverter(typeof(Int32ValueJsonConverter<TravelMm>))]

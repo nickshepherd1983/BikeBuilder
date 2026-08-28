@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 
-namespace BikeBuilder.Contracts.Components;
+namespace BikeBuilder.Contracts.Types;
 
 [JsonConverter(typeof(Int32ValueJsonConverter<RiseMm>))]
 public readonly record struct RiseMm : IInt32Value<RiseMm>
