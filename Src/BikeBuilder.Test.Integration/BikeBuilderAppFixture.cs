@@ -117,17 +117,13 @@ public sealed class BikeBuilderAppFixture : IAsyncLifetime
     _network = new NetworkBuilder().Build();
     await _network.CreateAsync();
 
-    // The parameterless MsSqlBuilder/ContainerBuilder constructors are marked obsolete in
-    // Testcontainers 4.14.0 in favor of overloads that pin an explicit image, but still
-    // resolve their documented default images correctly today.
-#pragma warning disable CS0618
-    _sql = new MsSqlBuilder()
+    // 2025+ required: the Components.Information column uses the native json type.
+    _sql = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
         .WithDatabase("BikeBuilderDb")
         .WithPassword("BikeBuilder!Test2026")
         .WithNetwork(_network)
         .WithNetworkAliases("sql")
         .Build();
-#pragma warning restore CS0618
 
     // Testcontainers.Azurite pins 3.28.0 by default, which predates Azurite's
     // AZURITE_SKIP_API_VERSION_CHECK env var (added in 3.37.0) - needed because the

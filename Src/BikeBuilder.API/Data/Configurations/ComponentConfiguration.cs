@@ -29,8 +29,11 @@ public class ComponentConfiguration : IEntityTypeConfiguration<Component>
 
     // Polymorphic JSON column; the comparer snapshots via a JSON round trip because the
     // subtypes are mutable reference types edited in place - without it change tracking
-    // would never see an in-place edit.
+    // would never see an in-place edit. The native json column type (SQL Server 2025+)
+    // gets storage-level validation and binary storage; the converter still just reads and
+    // writes the serialized string.
     builder.Property(c => c.Information)
+        .HasColumnType("json")
         .HasConversion(
             information => ComponentInformationSerializer.Serialize(information),
             json => ComponentInformationSerializer.Deserialize(json),
