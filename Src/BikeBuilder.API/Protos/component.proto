@@ -32,10 +32,21 @@ message ComponentMessage {
   string component_information_json = 9; // polymorphic ComponentInformation JSON; "" = none
 }
 
+// Prefixed per proto3 style; protoc strips the prefix, so C# sees ComponentSortField.Name etc.
+enum ComponentSortField {
+  COMPONENT_SORT_FIELD_UNSPECIFIED = 0; // server default: Name ascending
+  COMPONENT_SORT_FIELD_NAME = 1;
+  COMPONENT_SORT_FIELD_COST = 2;
+  COMPONENT_SORT_FIELD_SKU = 3;
+  COMPONENT_SORT_FIELD_MANUFACTURER = 4;
+}
+
 message ListComponentsRequest {
-  string search = 1; // optional name/SKU filter; empty returns everything
-  int32 limit = 2;   // page size when page > 0, otherwise a plain cap; 0 means default/no cap
-  int32 page = 3;    // 1-based; 0 means not paged (autocomplete/legacy callers)
+  string search = 1;                 // optional name/SKU filter; empty returns everything
+  int32 limit = 2;                   // page size when page > 0, otherwise a plain cap; 0 means default/no cap
+  int32 page = 3;                    // 1-based; 0 means not paged (autocomplete/legacy callers)
+  ComponentSortField sort_field = 4; // UNSPECIFIED falls back to Name ascending
+  bool sort_descending = 5;          // ignored when sort_field is UNSPECIFIED
 }
 
 message ListComponentsResponse {

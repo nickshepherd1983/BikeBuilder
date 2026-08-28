@@ -12,6 +12,7 @@ public partial class BikeBuilds(
 
   MudTable<BikeBuildMessage> _table = null!;
   Dictionary<int, RatingSummaryDto>? _ratingSummaries;
+  string _search = string.Empty;
 
   async Task<TableData<BikeBuildMessage>> LoadBikeBuildsAsync(TableState state, CancellationToken cancellationToken)
   {
@@ -19,12 +20,38 @@ public partial class BikeBuilds(
     var response = await _bikeBuildClient.ListBikeBuildsAsync(new ListBikeBuildsRequest
     {
       Page = state.Page + 1,
-      PageSize = state.PageSize
+      PageSize = state.PageSize,
+      Search = _search,
+      SortField = MapSortField(state),
+      SortDescending = state.SortDirection == SortDirection.Descending
     }, cancellationToken: cancellationToken);
 
     await LoadRatingSummaries(response.BikeBuilds.Select(b => b.Id));
 
     return new TableData<BikeBuildMessage> { Items = response.BikeBuilds, TotalItems = response.TotalCount };
+  }
+
+  static BikeBuildSortField MapSortField(TableState state)
+  {
+    // A third click on a sort label un-sorts (SortDirection.None) - fall back to the server default.
+    if (state.SortDirection == SortDirection.None)
+      return BikeBuildSortField.Unspecified;
+
+    return state.SortLabel switch
+    {
+      "name" => BikeBuildSortField.Name,
+      "date" => BikeBuildSortField.Date,
+      "description" => BikeBuildSortField.Description,
+      "total" => BikeBuildSortField.Total,
+      _ => BikeBuildSortField.Unspecified
+    };
+  }
+
+  async Task SearchChanged(string _)
+  {
+    // Reset to the first page so filtering from a deep page doesn't strand on an empty page.
+    _table.CurrentPage = 0;
+    await _table.ReloadServerData();
   }
 
   async Task LoadRatingSummaries(IEnumerable<int> bikeBuildIds)

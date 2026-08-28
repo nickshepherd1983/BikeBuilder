@@ -41,12 +41,19 @@ else
         </MudStack>
     </MudStack>
 
-    <MudTable Items="@_bikeBuild.Components" Hover="true" Striped="true">
+    <MudTable T="BikeBuildComponentMessage" @ref="_componentsTable" ServerData="LoadBikeBuildComponentsAsync" RowsPerPage="20" Hover="true" Striped="true">
+        <ToolBarContent>
+            @* Placeholder rather than Label so dialog-scoped GetByLabel test locators stay unambiguous. *@
+            <MudTextField T="string" @bind-Value="_componentSearch" Placeholder="Search components"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Clearable="true" Immediate="true" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="ComponentSearchChanged" Class="mt-0" />
+        </ToolBarContent>
         <HeaderContent>
-            <MudTh>Component</MudTh>
+            <MudTh><MudTableSortLabel T="BikeBuildComponentMessage" SortLabel="component">Component</MudTableSortLabel></MudTh>
             <MudTh>Information</MudTh>
-            <MudTh>Quantity</MudTh>
-            <MudTh>Date</MudTh>
+            <MudTh><MudTableSortLabel T="BikeBuildComponentMessage" SortLabel="quantity">Quantity</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="BikeBuildComponentMessage" SortLabel="date">Date</MudTableSortLabel></MudTh>
             <MudTh Style="width: 1%;"></MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -64,6 +71,9 @@ else
         <NoRecordsContent>
             <MudText>No components added yet.</MudText>
         </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="[10, 20, 50]" />
+        </PagerContent>
     </MudTable>
 
     <MudPaper Class="pa-4 mb-6 mt-6" Elevation="1">

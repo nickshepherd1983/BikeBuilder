@@ -15,6 +15,7 @@ public partial class Components(
 
   MudTable<ComponentMessage> _table = null!;
   bool _isUploading;
+  string _search = string.Empty;
 
   async Task<TableData<ComponentMessage>> LoadComponentsAsync(TableState state, CancellationToken cancellationToken)
   {
@@ -22,10 +23,36 @@ public partial class Components(
     var response = await _componentClient.ListComponentsAsync(new ListComponentsRequest
     {
       Page = state.Page + 1,
-      Limit = state.PageSize
+      Limit = state.PageSize,
+      Search = _search,
+      SortField = MapSortField(state),
+      SortDescending = state.SortDirection == SortDirection.Descending
     }, cancellationToken: cancellationToken);
 
     return new TableData<ComponentMessage> { Items = response.Components, TotalItems = response.TotalCount };
+  }
+
+  static ComponentSortField MapSortField(TableState state)
+  {
+    // A third click on a sort label un-sorts (SortDirection.None) - fall back to the server default.
+    if (state.SortDirection == SortDirection.None)
+      return ComponentSortField.Unspecified;
+
+    return state.SortLabel switch
+    {
+      "name" => ComponentSortField.Name,
+      "cost" => ComponentSortField.Cost,
+      "sku" => ComponentSortField.Sku,
+      "manufacturer" => ComponentSortField.Manufacturer,
+      _ => ComponentSortField.Unspecified
+    };
+  }
+
+  async Task SearchChanged(string _)
+  {
+    // Reset to the first page so filtering from a deep page doesn't strand on an empty page.
+    _table.CurrentPage = 0;
+    await _table.ReloadServerData();
   }
 
   async Task ReloadComponents() => await _table.ReloadServerData();

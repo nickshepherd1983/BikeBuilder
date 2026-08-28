@@ -11,11 +11,18 @@
 </MudStack>
 
 <MudTable T="BikeBuildMessage" @ref="_table" ServerData="LoadBikeBuildsAsync" RowsPerPage="20" Hover="true" Striped="true">
+    <ToolBarContent>
+        @* Placeholder rather than Label so dialog-scoped GetByLabel test locators stay unambiguous. *@
+        <MudTextField T="string" @bind-Value="_search" Placeholder="Search name or description"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Clearable="true" Immediate="true" DebounceInterval="300"
+                      OnDebounceIntervalElapsed="SearchChanged" Class="mt-0" />
+    </ToolBarContent>
     <HeaderContent>
-        <MudTh>Name</MudTh>
-        <MudTh>Date</MudTh>
-        <MudTh>Description</MudTh>
-        <MudTh>Total</MudTh>
+        <MudTh><MudTableSortLabel T="BikeBuildMessage" SortLabel="name">Name</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="BikeBuildMessage" SortLabel="date" InitialDirection="SortDirection.Descending">Date</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="BikeBuildMessage" SortLabel="description">Description</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="BikeBuildMessage" SortLabel="total">Total</MudTableSortLabel></MudTh>
         <MudTh>Ratings</MudTh>
         <MudTh>Average</MudTh>
         <MudTh Style="width: 1%;"></MudTh>

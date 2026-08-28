@@ -29,6 +29,23 @@ public class BikeBuildEditPage(IPage page)
   public async Task<IReadOnlyList<string>> GetAttachedComponentNamesAsync() =>
       await page.Locator("table tbody tr td:first-child").AllTextContentsAsync();
 
+  public ILocator ComponentRow(string componentName) =>
+      page.Locator("table tbody tr").Filter(new() { HasText = componentName });
+
+  // Columns: Component | Information | Quantity | Date | actions.
+  public ILocator QuantityColumn => page.Locator("table tbody tr td:nth-child(3)");
+
+  // Debounced toolbar search - callers must use auto-retrying Expect waits afterwards.
+  public Task SearchComponentsAsync(string term) => SearchField.FillAsync(term);
+
+  public Task ClearComponentSearchAsync() => SearchField.FillAsync(string.Empty);
+
+  // Clicks a MudTableSortLabel by its visible column text (cycles asc -> desc -> unsorted).
+  public Task SortByAsync(string column) =>
+      page.Locator(".mud-table-sort-label", new() { HasText = column }).ClickAsync();
+
+  ILocator SearchField => page.GetByPlaceholder("Search components");
+
   public async Task AddRatingAsync(int stars, string comment)
   {
     var section = RatingsSection;

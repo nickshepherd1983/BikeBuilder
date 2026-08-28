@@ -9,7 +9,12 @@ public partial class BikeBuildEdit(
 {
   [Parameter] public int Id { get; set; }
 
+  // _bikeBuild (full components list from GetBikeBuild) stays the source of truth for the header
+  // Total and the dialogs' recommended-max warning; only the grid display is server-paged.
   BikeBuildMessage? _bikeBuild;
+
+  MudTable<BikeBuildComponentMessage> _componentsTable = null!;
+  string _componentSearch = string.Empty;
 
   string _name = string.Empty;
   DateTime? _date = DateTime.Today;
@@ -83,6 +88,44 @@ public partial class BikeBuildEdit(
     _description = _bikeBuild.Description;
   }
 
+  async Task<TableData<BikeBuildComponentMessage>> LoadBikeBuildComponentsAsync(TableState state, CancellationToken cancellationToken)
+  {
+    // MudTable pages are 0-based; the RPC is 1-based.
+    var response = await _bikeBuildClient.ListBikeBuildComponentsAsync(new ListBikeBuildComponentsRequest
+    {
+      BikeBuildId = Id,
+      Page = state.Page + 1,
+      PageSize = state.PageSize,
+      Search = _componentSearch,
+      SortField = MapSortField(state),
+      SortDescending = state.SortDirection == SortDirection.Descending
+    }, cancellationToken: cancellationToken);
+
+    return new TableData<BikeBuildComponentMessage> { Items = response.Components, TotalItems = response.TotalCount };
+  }
+
+  static BikeBuildComponentSortField MapSortField(TableState state)
+  {
+    // A third click on a sort label un-sorts (SortDirection.None) - fall back to the server default.
+    if (state.SortDirection == SortDirection.None)
+      return BikeBuildComponentSortField.Unspecified;
+
+    return state.SortLabel switch
+    {
+      "component" => BikeBuildComponentSortField.ComponentName,
+      "quantity" => BikeBuildComponentSortField.Quantity,
+      "date" => BikeBuildComponentSortField.Date,
+      _ => BikeBuildComponentSortField.Unspecified
+    };
+  }
+
+  async Task ComponentSearchChanged(string _)
+  {
+    // Reset to the first page so filtering from a deep page doesn't strand on an empty page.
+    _componentsTable.CurrentPage = 0;
+    await _componentsTable.ReloadServerData();
+  }
+
   async Task SaveBikeBuild()
   {
     if (_date is null)
@@ -136,6 +179,7 @@ public partial class BikeBuildEdit(
 
       _snackbar.Add("Component added.", Severity.Success);
       await LoadBikeBuild();
+      await _componentsTable.ReloadServerData();
     }
     catch (RpcException ex)
     {
@@ -178,6 +222,7 @@ public partial class BikeBuildEdit(
 
       _snackbar.Add("Component updated.", Severity.Success);
       await LoadBikeBuild();
+      await _componentsTable.ReloadServerData();
     }
     catch (RpcException ex)
     {
@@ -200,6 +245,7 @@ public partial class BikeBuildEdit(
       await _bikeBuildClient.RemoveBikeBuildComponentAsync(new RemoveBikeBuildComponentRequest { Id = bbc.Id });
       _snackbar.Add("Component removed.", Severity.Success);
       await LoadBikeBuild();
+      await _componentsTable.ReloadServerData();
     }
     catch (RpcException ex)
     {

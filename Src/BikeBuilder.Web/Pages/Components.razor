@@ -11,12 +11,19 @@
 </MudStack>
 
 <MudTable T="ComponentMessage" @ref="_table" ServerData="LoadComponentsAsync" RowsPerPage="20" Hover="true" Striped="true">
+    <ToolBarContent>
+        @* Placeholder rather than Label so dialog-scoped GetByLabel test locators stay unambiguous. *@
+        <MudTextField T="string" @bind-Value="_search" Placeholder="Search name or SKU"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Clearable="true" Immediate="true" DebounceInterval="300"
+                      OnDebounceIntervalElapsed="SearchChanged" Class="mt-0" />
+    </ToolBarContent>
     <HeaderContent>
         <MudTh Style="width: 1%;"></MudTh>
-        <MudTh>Name</MudTh>
-        <MudTh>Cost</MudTh>
-        <MudTh>SKU</MudTh>
-        <MudTh>Manufacturer</MudTh>
+        <MudTh><MudTableSortLabel T="ComponentMessage" SortLabel="name" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="ComponentMessage" SortLabel="cost">Cost</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="ComponentMessage" SortLabel="sku">SKU</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="ComponentMessage" SortLabel="manufacturer">Manufacturer</MudTableSortLabel></MudTh>
         <MudTh>Information</MudTh>
         <MudTh>Description</MudTh>
         <MudTh Style="width: 1%;"></MudTh>

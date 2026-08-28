@@ -16,6 +16,23 @@ service BikeBuildService {
   rpc AddBikeBuildComponent (AddBikeBuildComponentRequest) returns (BikeBuildComponentMessage);
   rpc UpdateBikeBuildComponent (UpdateBikeBuildComponentRequest) returns (BikeBuildComponentMessage);
   rpc RemoveBikeBuildComponent (RemoveBikeBuildComponentRequest) returns (RemoveBikeBuildComponentResponse);
+  rpc ListBikeBuildComponents (ListBikeBuildComponentsRequest) returns (ListBikeBuildComponentsResponse);
+}
+
+// Prefixed per proto3 style; protoc strips the prefix, so C# sees BikeBuildSortField.Name etc.
+enum BikeBuildSortField {
+  BIKE_BUILD_SORT_FIELD_UNSPECIFIED = 0; // server default: Date descending
+  BIKE_BUILD_SORT_FIELD_NAME = 1;
+  BIKE_BUILD_SORT_FIELD_DATE = 2;
+  BIKE_BUILD_SORT_FIELD_DESCRIPTION = 3;
+  BIKE_BUILD_SORT_FIELD_TOTAL = 4;       // SUM(component cost * quantity), computed in SQL
+}
+
+enum BikeBuildComponentSortField {
+  BIKE_BUILD_COMPONENT_SORT_FIELD_UNSPECIFIED = 0; // server default: Id ascending (insertion order)
+  BIKE_BUILD_COMPONENT_SORT_FIELD_COMPONENT_NAME = 1;
+  BIKE_BUILD_COMPONENT_SORT_FIELD_QUANTITY = 2;
+  BIKE_BUILD_COMPONENT_SORT_FIELD_DATE = 3;
 }
 
 message BikeBuildMessage {
@@ -38,8 +55,11 @@ message BikeBuildComponentMessage {
 }
 
 message ListBikeBuildsRequest {
-  int32 page = 1;      // 1-based; 0 (proto3 default) is treated as page 1
-  int32 page_size = 2; // 0 (proto3 default) is treated as 20
+  int32 page = 1;                    // 1-based; 0 (proto3 default) is treated as page 1
+  int32 page_size = 2;               // 0 (proto3 default) is treated as 20
+  string search = 3;                 // optional name/description filter; empty returns everything
+  BikeBuildSortField sort_field = 4; // UNSPECIFIED falls back to Date descending
+  bool sort_descending = 5;          // ignored when sort_field is UNSPECIFIED
 }
 
 message ListBikeBuildsResponse {
@@ -92,4 +112,18 @@ message RemoveBikeBuildComponentRequest {
 
 message RemoveBikeBuildComponentResponse {
   bool success = 1;
+}
+
+message ListBikeBuildComponentsRequest {
+  int32 bike_build_id = 1;
+  int32 page = 2;                             // 1-based; 0 is treated as page 1
+  int32 page_size = 3;                        // 0 is treated as 20
+  string search = 4;                          // optional component-name filter; empty returns everything
+  BikeBuildComponentSortField sort_field = 5; // UNSPECIFIED falls back to Id ascending
+  bool sort_descending = 6;                   // ignored when sort_field is UNSPECIFIED
+}
+
+message ListBikeBuildComponentsResponse {
+  repeated BikeBuildComponentMessage components = 1;
+  int32 total_count = 2; // count after the search filter, before paging
 }

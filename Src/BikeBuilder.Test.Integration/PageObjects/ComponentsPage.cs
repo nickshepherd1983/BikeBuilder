@@ -91,4 +91,17 @@ public class ComponentsPage(IPage page, string baseUrl)
 
   ILocator RowByName(string componentName) =>
       page.Locator("table tbody tr").Filter(new() { HasText = componentName });
+
+  public ILocator Row(string componentName) => RowByName(componentName);
+
+  // Debounced toolbar search - callers must use auto-retrying Expect waits afterwards.
+  public Task SearchAsync(string term) => SearchField.FillAsync(term);
+
+  public Task ClearSearchAsync() => SearchField.FillAsync(string.Empty);
+
+  // Clicks a MudTableSortLabel by its visible column text (cycles asc -> desc -> unsorted).
+  public Task SortByAsync(string column) =>
+      page.Locator(".mud-table-sort-label", new() { HasText = column }).ClickAsync();
+
+  ILocator SearchField => page.GetByPlaceholder("Search name or SKU");
 }

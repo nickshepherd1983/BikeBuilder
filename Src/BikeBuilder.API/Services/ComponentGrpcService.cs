@@ -11,7 +11,19 @@ public class ComponentGrpcService(BikeBuilderDbContext db, ComponentImageStorage
 
     var totalCount = await query.CountAsync(context.CancellationToken);
 
-    query = query.OrderBy(c => c.Name);
+    query = (request.SortField, request.SortDescending) switch
+    {
+      (ComponentSortField.Name, true) => query.OrderByDescending(c => c.Name).ThenByDescending(c => c.Id),
+      (ComponentSortField.Cost, false) => query.OrderBy(c => c.Cost).ThenBy(c => c.Id),
+      (ComponentSortField.Cost, true) => query.OrderByDescending(c => c.Cost).ThenByDescending(c => c.Id),
+      (ComponentSortField.Sku, false) => query.OrderBy(c => c.Sku).ThenBy(c => c.Id),
+      (ComponentSortField.Sku, true) => query.OrderByDescending(c => c.Sku).ThenByDescending(c => c.Id),
+      // Manufacturer is stored as a string (HasConversion<string>), so this sorts alphabetically
+      // by the stored name (Hope < Other < Shimano < Sram), not by enum value.
+      (ComponentSortField.Manufacturer, false) => query.OrderBy(c => c.Manufacturer).ThenBy(c => c.Id),
+      (ComponentSortField.Manufacturer, true) => query.OrderByDescending(c => c.Manufacturer).ThenByDescending(c => c.Id),
+      _ => query.OrderBy(c => c.Name).ThenBy(c => c.Id)
+    };
 
     if (request.Page > 0)
     {

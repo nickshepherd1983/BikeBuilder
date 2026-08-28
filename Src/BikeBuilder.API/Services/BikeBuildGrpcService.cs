@@ -9,14 +9,30 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
     var page = Math.Max(request.Page, 1);
     var pageSize = Math.Clamp(request.PageSize <= 0 ? 20 : request.PageSize, 1, 100);
 
-    var totalCount = await db.BikeBuilds.CountAsync(context.CancellationToken);
-
-    var bikeBuilds = await db.BikeBuilds
+    IQueryable<Data.Entities.BikeBuild> query = db.BikeBuilds
         .Include(b => b.BikeBuildComponents)
         .ThenInclude(x => x.Component)
-        .AsNoTracking()
-        .OrderByDescending(b => b.Date)
-        .ThenByDescending(b => b.Id)
+        .AsNoTracking();
+
+    if (!string.IsNullOrWhiteSpace(request.Search))
+      query = query.Where(b => b.Name.Contains(request.Search) || b.Description.Contains(request.Search));
+
+    var totalCount = await query.CountAsync(context.CancellationToken);
+
+    // (Date, true) falls through to the default arm - same ordering.
+    query = (request.SortField, request.SortDescending) switch
+    {
+      (BikeBuildSortField.Name, false) => query.OrderBy(b => b.Name).ThenBy(b => b.Id),
+      (BikeBuildSortField.Name, true) => query.OrderByDescending(b => b.Name).ThenByDescending(b => b.Id),
+      (BikeBuildSortField.Date, false) => query.OrderBy(b => b.Date).ThenBy(b => b.Id),
+      (BikeBuildSortField.Description, false) => query.OrderBy(b => b.Description).ThenBy(b => b.Id),
+      (BikeBuildSortField.Description, true) => query.OrderByDescending(b => b.Description).ThenByDescending(b => b.Id),
+      (BikeBuildSortField.Total, false) => query.OrderBy(b => b.BikeBuildComponents.Sum(x => x.Component.Cost * x.Quantity)).ThenBy(b => b.Id),
+      (BikeBuildSortField.Total, true) => query.OrderByDescending(b => b.BikeBuildComponents.Sum(x => x.Component.Cost * x.Quantity)).ThenByDescending(b => b.Id),
+      _ => query.OrderByDescending(b => b.Date).ThenByDescending(b => b.Id)
+    };
+
+    var bikeBuilds = await query
         .Skip((page - 1) * pageSize)
         .Take(pageSize)
         .ToListAsync(context.CancellationToken);
@@ -132,6 +148,47 @@ public class BikeBuildGrpcService(BikeBuilderDbContext db, IEventPublisher event
     await db.SaveChangesAsync(context.CancellationToken);
 
     return new RemoveBikeBuildComponentResponse { Success = true };
+  }
+
+  public override async Task<ListBikeBuildComponentsResponse> ListBikeBuildComponents(ListBikeBuildComponentsRequest request, ServerCallContext context)
+  {
+    var bikeBuildExists = await db.BikeBuilds.AnyAsync(b => b.Id == request.BikeBuildId, context.CancellationToken);
+    if (!bikeBuildExists)
+      throw new RpcException(new Status(StatusCode.NotFound, $"BikeBuild {request.BikeBuildId} not found."));
+
+    var page = Math.Max(request.Page, 1);
+    var pageSize = Math.Clamp(request.PageSize <= 0 ? 20 : request.PageSize, 1, 100);
+
+    IQueryable<Data.Entities.BikeBuildComponent> query = db.BikeBuildComponents
+        .Include(x => x.Component)
+        .AsNoTracking()
+        .Where(x => x.BikeBuildId == request.BikeBuildId);
+
+    if (!string.IsNullOrWhiteSpace(request.Search))
+      query = query.Where(x => x.Component.Name.Contains(request.Search));
+
+    var totalCount = await query.CountAsync(context.CancellationToken);
+
+    query = (request.SortField, request.SortDescending) switch
+    {
+      (BikeBuildComponentSortField.ComponentName, false) => query.OrderBy(x => x.Component.Name).ThenBy(x => x.Id),
+      (BikeBuildComponentSortField.ComponentName, true) => query.OrderByDescending(x => x.Component.Name).ThenByDescending(x => x.Id),
+      (BikeBuildComponentSortField.Quantity, false) => query.OrderBy(x => x.Quantity).ThenBy(x => x.Id),
+      (BikeBuildComponentSortField.Quantity, true) => query.OrderByDescending(x => x.Quantity).ThenByDescending(x => x.Id),
+      (BikeBuildComponentSortField.Date, false) => query.OrderBy(x => x.Date).ThenBy(x => x.Id),
+      (BikeBuildComponentSortField.Date, true) => query.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id),
+      // UNSPECIFIED -> insertion order, matching the old in-memory grid.
+      _ => query.OrderBy(x => x.Id)
+    };
+
+    var rows = await query
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync(context.CancellationToken);
+
+    var response = new ListBikeBuildComponentsResponse { TotalCount = totalCount };
+    response.Components.AddRange(rows.Select(x => ToMessage(x, x.Component)));
+    return response;
   }
 
   async Task<Data.Entities.BikeBuild> LoadBikeBuildWithComponents(int id, CancellationToken cancellationToken)
